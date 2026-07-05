@@ -112,7 +112,6 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
       }
-      // @ts-expect-error — ctx.filter is supported in all modern browsers
       ctx.filter = film.filter;
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       ctx.restore();
