@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PaymentOrderStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { coreApi } from "@/lib/midtrans";
@@ -32,7 +33,7 @@ export async function GET(
       const transactionStatus = status.transaction_status as string;
       const fraudStatus = status.fraud_status as string | undefined;
 
-      let nextStatus: typeof order.status = order.status;
+      let nextStatus: PaymentOrderStatus = order.status;
       if (transactionStatus === "capture" || transactionStatus === "settlement") {
         nextStatus = fraudStatus === "deny" ? "FAILED" : "PAID";
       } else if (transactionStatus === "deny") {
