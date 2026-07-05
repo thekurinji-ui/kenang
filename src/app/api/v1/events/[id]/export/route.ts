@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { Readable } from "stream";
 import { ZipFile } from "yazl";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -73,12 +72,18 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   zipfile.end();
 
-  const webStream = Readable.toWeb(zipfile.outputStream) as unknown as ReadableStream;
+  const chunks: Buffer[] = [];
+  await new Promise<void>((resolve, reject) => {
+    zipfile.outputStream.on("data", (chunk: Buffer) => chunks.push(chunk));
+    zipfile.outputStream.on("end", () => resolve());
+    zipfile.outputStream.on("error", reject);
+  });
+  const zipBuffer = Buffer.concat(chunks);
 
   const safeTitle = event.title.replace(/[^a-zA-Z0-9-_ ]/g, "").trim() || "event";
   const filename = `${safeTitle}-kenangkurinji.zip`;
 
-  return new NextResponse(webStream, {
+  return new NextResponse(zipBuffer, {
     status: 200,
     headers: {
       "Content-Type": "application/zip",
