@@ -105,7 +105,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
           // (persegi), banyak device (terutama Android) memenuhinya dengan
           // digital crop/zoom ke tengah, jadi field-of-view kelihatan lebih
           // sempit ("ngezoom") dibanding preview kamera bawaan HP.
-          width: { ideal: 1920 },
+          height: { ideal: 1920 },
         },
         audio: false,
       });
