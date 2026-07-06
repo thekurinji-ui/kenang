@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin";
 import { AdminSidebar } from "@/components/admin/sidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const check = await requireAdmin();
 
-  if (!session?.user) {
-    redirect("/login");
-  }
-  if (session.user.role !== "ADMIN") {
-    redirect("/dashboard");
+  if (!check.ok) {
+    redirect(check.code === "UNAUTHORIZED" ? "/login" : "/dashboard");
   }
 
   return (
