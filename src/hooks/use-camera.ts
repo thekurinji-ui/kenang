@@ -100,8 +100,12 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode,
+          // Cuma batasi lebar sebagai plafon resolusi — JANGAN set height
+          // ideal yang sama besar. Kalau width & height ideal dipaksa sama
+          // (persegi), banyak device (terutama Android) memenuhinya dengan
+          // digital crop/zoom ke tengah, jadi field-of-view kelihatan lebih
+          // sempit ("ngezoom") dibanding preview kamera bawaan HP.
           width: { ideal: 1920 },
-          height: { ideal: 1920 },
         },
         audio: false,
       });
@@ -293,4 +297,4 @@ function drawVignette(ctx: CanvasRenderingContext2D, w: number, h: number) {
   gradient.addColorStop(1, "rgba(0,0,0,0.35)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, w, h);
-}
+      }
