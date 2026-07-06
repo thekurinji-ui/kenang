@@ -3,7 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getFilmById, type FilmId } from "@/lib/films";
 import { getOrCreateDeviceId } from "@/lib/utils";
+import { createLutRenderer, loadLutImage, type LutRenderer } from "@/lib/webgl-lut";
 import type { CameraState } from "@/types";
+
+// Cache antar-render supaya LUT yang sudah dimuat sekali tidak di-fetch ulang
+// tiap kali guest gonta-ganti film di viewfinder.
+const lutImageCache = new Map<string, Promise<HTMLImageElement>>();
+
+function getCachedLutImage(url: string): Promise<HTMLImageElement> {
+  let cached = lutImageCache.get(url);
+  if (!cached) {
+    cached = loadLutImage(url);
+    lutImageCache.set(url, cached);
+  }
+  return cached;
+}
 
 interface UseCameraOptions {
   eventCode: string;
@@ -22,10 +36,16 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Canvas yang menampilkan hasil live preview dengan LUT sudah diterapkan
+  // (menggantikan pendekatan lama: <video style={{ filter: cssString }} />).
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const lutRendererRef = useRef<LutRenderer | null>(null);
+  const [isLutReady, setIsLutReady] = useState(false);
+
   const [state, setState] = useState<CameraState>("permission");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [flash, setFlash] = useState<"auto" | "on" | "off">("auto");
-  const [selectedFilm, setSelectedFilm] = useState<FilmId>("sunny-roll");
+  const [selectedFilm, setSelectedFilm] = useState<FilmId>("snap-01");
   const [shotsTaken, setShotsTaken] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
@@ -85,6 +105,54 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     setFacingMode((m) => (m === "user" ? "environment" : "user"));
   }, []);
 
+  // Inisialisasi WebGL LUT renderer sekali saat canvas preview terpasang.
+  useEffect(() => {
+    if (!previewCanvasRef.current) return;
+    try {
+      lutRendererRef.current = createLutRenderer(previewCanvasRef.current);
+    } catch (err) {
+      console.error("Gagal membuat LUT renderer:", err);
+      lutRendererRef.current = null;
+    }
+    return () => {
+      lutRendererRef.current?.destroy();
+      lutRendererRef.current = null;
+    };
+  }, []);
+
+  // Muat ulang LUT setiap kali guest ganti film di viewfinder.
+  useEffect(() => {
+    let cancelled = false;
+    setIsLutReady(false);
+    const film = getFilmById(selectedFilm);
+    getCachedLutImage(film.lutUrl)
+      .then((image) => {
+        if (cancelled) return;
+        lutRendererRef.current?.setLut(image, film.lutSize);
+        setIsLutReady(true);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFilm]);
+
+  // Loop render live preview: menggambar frame video terbaru ke canvas
+  // dengan LUT aktif diterapkan, setiap frame (requestAnimationFrame).
+  useEffect(() => {
+    let raf = 0;
+    const loop = () => {
+      if (videoRef.current && lutRendererRef.current) {
+        lutRendererRef.current.draw(videoRef.current, facingMode === "user");
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [facingMode]);
+
   useEffect(() => {
     // Restart the stream whenever facing mode changes, but only if we've
     // already been granted permission once (state isn't stuck on "permission").
@@ -100,21 +168,15 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     (canvas: HTMLCanvasElement) => {
       const film = getFilmById(selectedFilm);
       const ctx = canvas.getContext("2d");
-      if (!ctx || !videoRef.current) return;
+      const source = previewCanvasRef.current;
+      if (!ctx || !source || source.width === 0 || source.height === 0) return;
 
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-
-      // Mirror the preview when using the front camera, matching what the
-      // guest actually saw in the viewfinder.
-      ctx.save();
-      if (facingMode === "user") {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-      }
-      ctx.filter = film.filter;
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
+      // `source` (preview canvas) sudah berisi frame ter-mirror + LUT
+      // diterapkan lewat WebGL, jadi hasil capture otomatis konsisten
+      // 1:1 dengan apa yang dilihat guest di viewfinder.
+      canvas.width = source.width;
+      canvas.height = source.height;
+      ctx.drawImage(source, 0, 0);
 
       if (film.grain > 0) {
         drawGrain(ctx, canvas.width, canvas.height, film.grain);
@@ -123,7 +185,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
         drawVignette(ctx, canvas.width, canvas.height);
       }
     },
-    [selectedFilm, facingMode]
+    [selectedFilm]
   );
 
   const capture = useCallback(async (): Promise<Blob | null> => {
@@ -177,6 +239,8 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
 
   return {
     videoRef,
+    previewCanvasRef,
+    isLutReady,
     state,
     setState,
     facingMode,
