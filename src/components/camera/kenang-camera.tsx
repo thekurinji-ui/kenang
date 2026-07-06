@@ -25,6 +25,7 @@ export function KenangCamera({ event }: KenangCameraProps) {
     flipCamera,
     flash,
     setFlash,
+    isFlashFiring,
     selectedFilm,
     setSelectedFilm,
     shotsTaken,
@@ -90,6 +91,12 @@ export function KenangCamera({ event }: KenangCameraProps) {
         ref={previewCanvasRef}
         className="h-full w-full object-cover"
       />
+
+      {/* Screen-flash fallback (kamera depan / browser tanpa dukungan torch,
+          mis. iOS Safari) — layar putih terang berkedip sesaat pas jepret. */}
+      {isFlashFiring && (
+        <div className="absolute inset-0 z-40 bg-white pointer-events-none" />
+      )}
 
       {!isLutReady && state === "ready" && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
