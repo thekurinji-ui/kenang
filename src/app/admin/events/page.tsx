@@ -100,4 +100,57 @@ export default function AdminEventsPage() {
                 <th className="p-4 font-medium">Foto</th>
                 <th className="p-4 font-medium">Tamu</th>
                 <th className="p-4 font-medium">Dibuat</th>
-                <th className="p-4 font-medium
+                <th className="p-4 font-medium text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((e) => (
+                <tr key={e.id} className="border-b border-neutral-slate last:border-0">
+                  <td className="p-4">
+                    <p className="text-neutral-midnight font-medium">{e.title}</p>
+                    <p className="text-neutral-midnight/50 text-xs">/e/{e.slug}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-neutral-midnight/70">{e.owner.name}</p>
+                    <p className="text-neutral-midnight/50 text-xs">{e.owner.email}</p>
+                  </td>
+                  <td className="p-4">
+                    <span className="text-xs bg-neutral-slate/50 text-neutral-midnight/60 px-2 py-1 rounded-full">
+                      {e.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-neutral-midnight/70">
+                    {e.analytics?.totalPhotos ?? 0}
+                  </td>
+                  <td className="p-4 text-neutral-midnight/70">
+                    {e.analytics?.totalGuests ?? 0}
+                  </td>
+                  <td className="p-4 text-neutral-midnight/70">
+                    {new Date(e.createdAt).toLocaleDateString("id-ID")}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <a href={`/e/${e.slug}`} target="_blank" rel="noreferrer">
+                        <Button variant="ghost" title="Buka halaman event">
+                          <ExternalLink size={16} />
+                        </Button>
+                      </a>
+                      <Button
+                        variant="danger"
+                        disabled={busyId === e.id}
+                        onClick={() => deleteEvent(e)}
+                        title="Hapus event"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </div>
+  );
+}
