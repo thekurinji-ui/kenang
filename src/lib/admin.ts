@@ -1,4 +1,18 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * Ambil role user langsung dari database berdasarkan userId dari session.
+ * Sengaja tidak mengandalkan session.user.role — session/JWT tidak
+ * membawa field role, jadi role selalu dicek fresh dari database.
+ */
+export async function getUserRole(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  return user?.role ?? null;
+}
 
 /**
  * Memastikan yang mengakses adalah Super Admin platform (role === "ADMIN").
@@ -17,7 +31,9 @@ export async function requireAdmin() {
     };
   }
 
-  if (session.user.role !== "ADMIN") {
+  const role = await getUserRole(session.user.id);
+
+  if (role !== "ADMIN") {
     return {
       ok: false as const,
       status: 403,
