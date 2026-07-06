@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -5,9 +6,15 @@ export function LandingNavbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-slate/70 bg-neutral-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2 font-heading text-lg font-semibold text-neutral-midnight">
-          <span aria-hidden>🌸</span>
-          Kenang Kurinji
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/logo.png"
+            alt="Kenang Kurinji"
+            width={160}
+            height={81}
+            priority
+            className="h-9 w-auto"
+          />
         </Link>
         <nav className="hidden items-center gap-8 font-body text-sm font-medium text-neutral-midnight/70 md:flex">
           <Link href="/features" className="transition-colors hover:text-neutral-midnight">
