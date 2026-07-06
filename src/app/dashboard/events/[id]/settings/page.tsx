@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { EditEventForm } from "@/components/dashboard/edit-event-form";
+import { EventCoverUpload } from "@/components/dashboard/event-cover-upload";
 
 interface PageProps {
   params: { id: string };
@@ -32,6 +33,8 @@ export default async function EventSettingsPage({ params }: PageProps) {
           Ubah detail, status, dan batas jepretan event ini.
         </p>
       </div>
+
+      <EventCoverUpload eventId={event.id} initialCoverImage={event.coverImage} />
 
       <EditEventForm
         eventId={event.id}
