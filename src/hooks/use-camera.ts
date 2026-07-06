@@ -94,7 +94,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
   const stopStream = useCallback(() => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track && trackHasTorch(track)) {
-      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+      applyTorch(track, false).catch(() => {});
     }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -302,6 +302,20 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
 
 // Torch (senter kamera belakang) bukan bagian resmi tipe MediaTrackCapabilities
 // di TypeScript, jadi kita cek secara manual lewat runtime check ini.
+// Properti "torch" juga belum ada di lib.dom.d.ts bawaan TypeScript untuk
+// MediaTrackConstraintSet (masih API non-standar/eksperimental), jadi perlu
+// tipe tambahan (TorchConstraintSet) supaya applyConstraints({torch}) lolos
+// type-check di build Next.js (bukan cuma di editor lokal).
+interface TorchConstraintSet extends MediaTrackConstraintSet {
+  torch?: boolean;
+}
+
+function applyTorch(track: MediaStreamTrack, on: boolean) {
+  return track.applyConstraints({
+    advanced: [{ torch: on } as TorchConstraintSet],
+  });
+}
+
 function trackHasTorch(track: MediaStreamTrack): boolean {
   try {
     const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
@@ -317,13 +331,13 @@ function trackHasTorch(track: MediaStreamTrack): boolean {
 // perilaku "flash on" di kamera bawaan HP (bukan senter yang terus menyala).
 async function fireTorch(track: MediaStreamTrack) {
   try {
-    await track.applyConstraints({ advanced: [{ torch: true }] });
+    await applyTorch(track, true);
     await wait(220); // beri waktu sensor kamera menyesuaikan sebelum jepret
   } catch {
     // Kalau gagal (mis. constraint ditolak di tengah jalan), tetap lanjut
     // ambil foto tanpa flash daripada memblokir capture sama sekali.
   } finally {
-    track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    applyTorch(track, false).catch(() => {});
   }
 }
 
@@ -393,4 +407,4 @@ function drawVignette(ctx: CanvasRenderingContext2D, w: number, h: number) {
   gradient.addColorStop(1, "rgba(0,0,0,0.35)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, w, h);
-      }
+}
