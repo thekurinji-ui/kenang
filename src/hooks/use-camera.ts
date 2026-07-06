@@ -38,9 +38,30 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
 
   // Canvas yang menampilkan hasil live preview dengan LUT sudah diterapkan
   // (menggantikan pendekatan lama: <video style={{ filter: cssString }} />).
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  //
+  // PENTING: canvas ini baru masuk DOM setelah state berpindah dari
+  // "permission" (lihat kenang-camera.tsx), jadi renderer TIDAK BOLEH dibuat
+  // lewat useEffect([]) biasa — itu akan jalan duluan sebelum canvas ada dan
+  // tidak pernah dicoba lagi (inilah penyebab layar hitam). Callback ref di
+  // bawah dipanggil React persis saat elemen canvas mount/unmount, kapan pun itu terjadi.
+  const canvasElRef = useRef<HTMLCanvasElement | null>(null);
   const lutRendererRef = useRef<LutRenderer | null>(null);
   const [isLutReady, setIsLutReady] = useState(false);
+  const [rendererVersion, setRendererVersion] = useState(0);
+
+  const previewCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    canvasElRef.current = node;
+    lutRendererRef.current?.destroy();
+    lutRendererRef.current = null;
+    if (node) {
+      try {
+        lutRendererRef.current = createLutRenderer(node);
+        setRendererVersion((v) => v + 1); // trigger (re)load LUT di effect bawah
+      } catch (err) {
+        console.error("Gagal membuat LUT renderer:", err);
+      }
+    }
+  }, []);
 
   const [state, setState] = useState<CameraState>("permission");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
@@ -105,23 +126,10 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     setFacingMode((m) => (m === "user" ? "environment" : "user"));
   }, []);
 
-  // Inisialisasi WebGL LUT renderer sekali saat canvas preview terpasang.
+  // Muat ulang LUT setiap kali guest ganti film DI viewfinder, ATAU setiap
+  // kali renderer baru saja dibuat (canvas baru mount / remount).
   useEffect(() => {
-    if (!previewCanvasRef.current) return;
-    try {
-      lutRendererRef.current = createLutRenderer(previewCanvasRef.current);
-    } catch (err) {
-      console.error("Gagal membuat LUT renderer:", err);
-      lutRendererRef.current = null;
-    }
-    return () => {
-      lutRendererRef.current?.destroy();
-      lutRendererRef.current = null;
-    };
-  }, []);
-
-  // Muat ulang LUT setiap kali guest ganti film di viewfinder.
-  useEffect(() => {
+    if (!lutRendererRef.current) return;
     let cancelled = false;
     setIsLutReady(false);
     const film = getFilmById(selectedFilm);
@@ -137,7 +145,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     return () => {
       cancelled = true;
     };
-  }, [selectedFilm]);
+  }, [selectedFilm, rendererVersion]);
 
   // Loop render live preview: menggambar frame video terbaru ke canvas
   // dengan LUT aktif diterapkan, setiap frame (requestAnimationFrame).
@@ -168,7 +176,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     (canvas: HTMLCanvasElement) => {
       const film = getFilmById(selectedFilm);
       const ctx = canvas.getContext("2d");
-      const source = previewCanvasRef.current;
+      const source = canvasElRef.current;
       if (!ctx || !source || source.width === 0 || source.height === 0) return;
 
       // `source` (preview canvas) sudah berisi frame ter-mirror + LUT
