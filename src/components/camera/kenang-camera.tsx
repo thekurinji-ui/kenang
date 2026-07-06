@@ -8,7 +8,6 @@ import { FlashToggle, CameraFlipButton, ExitButton, ShotCounter } from "./camera
 import { PermissionScreen } from "./permission-screen";
 import { EndOfRoll } from "./end-of-roll";
 import { UploadProgress } from "./upload-progress";
-import { getFilmById } from "@/lib/films";
 import type { PublicEventInfo } from "@/types";
 
 interface KenangCameraProps {
@@ -18,9 +17,10 @@ interface KenangCameraProps {
 export function KenangCamera({ event }: KenangCameraProps) {
   const {
     videoRef,
+    previewCanvasRef,
+    isLutReady,
     state,
     setState,
-    facingMode,
     flipCamera,
     flash,
     setFlash,
@@ -34,8 +34,6 @@ export function KenangCamera({ event }: KenangCameraProps) {
     capture,
     uploadShot,
   } = useCamera({ eventCode: event.slug, shotLimit: event.shotLimit });
-
-  const film = getFilmById(selectedFilm);
 
   // Auto-return to "ready" after a success/failed toast so the guest can
   // keep shooting without extra taps.
@@ -67,16 +65,27 @@ export function KenangCamera({ event }: KenangCameraProps) {
 
   return (
     <div className="relative h-full w-full bg-black overflow-hidden">
+      {/* Sumber frame kamera — disembunyikan secara visual, tapi tetap perlu
+          "playing" di DOM supaya video terus mengalir ke WebGL sebagai texture. */}
       <video
         ref={videoRef}
         playsInline
         muted
-        className="h-full w-full object-cover"
-        style={{
-          filter: film.filter,
-          transform: facingMode === "user" ? "scaleX(-1)" : undefined,
-        }}
+        className="absolute inset-0 h-full w-full object-cover opacity-0 pointer-events-none"
+        aria-hidden="true"
       />
+
+      {/* Viewfinder yang benar-benar dilihat guest: hasil LUT WebGL live. */}
+      <canvas
+        ref={previewCanvasRef}
+        className="h-full w-full object-cover"
+      />
+
+      {!isLutReady && state === "ready" && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+          <div className="h-6 w-6 rounded-full border-2 border-neutral-white/30 border-t-neutral-white animate-spin" />
+        </div>
+      )}
 
       {/* Top bar */}
       <div className="absolute top-0 inset-x-0 flex items-center justify-between p-4 z-20">
