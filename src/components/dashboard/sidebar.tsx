@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -19,8 +20,13 @@ export function DashboardSidebar() {
   return (
     <aside className="hidden md:flex md:flex-col md:w-60 shrink-0 border-r border-neutral-slate bg-neutral-white h-dvh sticky top-0 p-4">
       <Link href="/" className="flex items-center gap-2 px-2 py-3">
-        <span className="text-xl">🌸</span>
-        <span className="font-heading font-semibold text-neutral-midnight">Kenang Kurinji</span>
+        <Image
+          src="/logo.png"
+          alt="Kenang Kurinji"
+          width={140}
+          height={71}
+          className="h-8 w-auto"
+        />
       </Link>
 
       <nav className="flex flex-col gap-1 mt-4 flex-1">
