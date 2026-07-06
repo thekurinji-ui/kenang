@@ -99,10 +99,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: event.ownerId },
+  const owner = await prisma.user.findUnique({
+    where: { id: event.ownerId },
+    select: { role: true, subscription: { select: { plan: true } } },
   });
-  const isFreePlan = !subscription || subscription.plan === "FREE";
+
+  // Admin tidak terkena batasan paket harga (mis. watermark) untuk event
+  // milik mereka sendiri, terlepas dari status subscription-nya.
+  const isFreePlan =
+    owner?.role !== "ADMIN" && (!owner?.subscription || owner.subscription.plan === "FREE");
 
   const { storageKey, thumbnailKey, width, height } = await saveToR2(
     file,
