@@ -70,6 +70,10 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
   const [shotsTaken, setShotsTaken] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  // true sesaat (selama efek "screen flash" putih) saat foto diambil dengan
+  // flash aktif di perangkat yang tidak punya torch (mis. kamera depan, atau
+  // iOS Safari yang tidak mendukung MediaTrack torch constraint sama sekali).
+  const [isFlashFiring, setIsFlashFiring] = useState(false);
 
   const remaining = shotLimit === null ? null : Math.max(shotLimit - shotsTaken, 0);
   const isRollFinished = remaining !== null && remaining <= 0;
@@ -88,6 +92,10 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
   }, []);
 
   const stopStream = useCallback(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && trackHasTorch(track)) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
@@ -207,6 +215,25 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     // Camera sound + haptic feedback per Volume 5.
     if (navigator.vibrate) navigator.vibrate(35);
 
+    if (flash !== "off") {
+      const isDark = flash === "on" ? true : isFrameDark(videoRef.current);
+
+      if (isDark) {
+        const track = streamRef.current?.getVideoTracks()[0];
+        if (facingMode === "environment" && track && trackHasTorch(track)) {
+          // Kamera belakang + browser yang dukung torch (umumnya Chrome
+          // Android). Nyalakan sesaat pas mau jepret, lalu matikan lagi —
+          // sama seperti perilaku kamera bawaan HP.
+          await fireTorch(track);
+        } else {
+          // Fallback untuk kamera depan atau browser yang sama sekali tidak
+          // mendukung MediaTrack torch constraint (mis. iOS Safari): kedipkan
+          // layar putih terang sesaat sebelum frame diambil.
+          await fireScreenFlash(setIsFlashFiring);
+        }
+      }
+    }
+
     const canvas = document.createElement("canvas");
     applyFilmToCanvas(canvas);
 
@@ -217,7 +244,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     setShotsTaken((n) => n + 1);
     setState(isOnline ? "uploading" : "offline");
     return blob;
-  }, [applyFilmToCanvas, isRollFinished, isOnline]);
+  }, [applyFilmToCanvas, isRollFinished, isOnline, flash, facingMode]);
 
   const uploadShot = useCallback(
     async (blob: Blob) => {
@@ -259,6 +286,7 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     flipCamera,
     flash,
     setFlash,
+    isFlashFiring,
     selectedFilm,
     setSelectedFilm,
     shotsTaken,
@@ -270,6 +298,74 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
     capture,
     uploadShot,
   };
+}
+
+// Torch (senter kamera belakang) bukan bagian resmi tipe MediaTrackCapabilities
+// di TypeScript, jadi kita cek secara manual lewat runtime check ini.
+function trackHasTorch(track: MediaStreamTrack): boolean {
+  try {
+    const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
+      torch?: boolean;
+    };
+    return !!capabilities?.torch;
+  } catch {
+    return false;
+  }
+}
+
+// Nyalakan torch sesaat sebelum frame diambil, lalu matikan lagi — meniru
+// perilaku "flash on" di kamera bawaan HP (bukan senter yang terus menyala).
+async function fireTorch(track: MediaStreamTrack) {
+  try {
+    await track.applyConstraints({ advanced: [{ torch: true }] });
+    await wait(220); // beri waktu sensor kamera menyesuaikan sebelum jepret
+  } catch {
+    // Kalau gagal (mis. constraint ditolak di tengah jalan), tetap lanjut
+    // ambil foto tanpa flash daripada memblokir capture sama sekali.
+  } finally {
+    track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+  }
+}
+
+// Fallback untuk device/browser tanpa dukungan torch API (paling umum:
+// semua iPhone, karena Safari tidak mengekspos MediaTrack torch constraint
+// sama sekali). Meng-flash-kan seluruh layar jadi putih terang sesaat,
+// yang juga jadi sumber cahaya tambahan untuk foto (efek populer di
+// aplikasi kamera web/selfie berbasis browser).
+async function fireScreenFlash(setIsFlashFiring: (v: boolean) => void) {
+  setIsFlashFiring(true);
+  await wait(140);
+  setIsFlashFiring(false);
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Sampel kecerahan rata-rata frame video saat ini (di-downscale ke 16x16
+// biar murah) buat mode flash "Auto" — cuma nyalakan flash kalau memang gelap.
+const DARK_THRESHOLD = 80; // skala 0-255
+
+function isFrameDark(video: HTMLVideoElement): boolean {
+  try {
+    const size = 16;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return false;
+    ctx.drawImage(video, 0, 0, size, size);
+    const { data } = ctx.getImageData(0, 0, size, size);
+
+    let total = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      total += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    const avg = total / (data.length / 4);
+    return avg < DARK_THRESHOLD;
+  } catch {
+    return false;
+  }
 }
 
 function drawGrain(ctx: CanvasRenderingContext2D, w: number, h: number, intensity: number) {
