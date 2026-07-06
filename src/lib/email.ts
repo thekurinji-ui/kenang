@@ -49,9 +49,12 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
 }
 
 export function passwordResetEmailHtml(resetUrl: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   return `
   <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-    <p style="font-size: 20px; margin-bottom: 4px;">🌸 Kenang Kurinji</p>
+    <p style="margin-bottom: 16px;">
+      <img src="${appUrl}/logo.png" alt="Kenang Kurinji" style="height: 32px; width: auto;" />
+    </p>
     <h2 style="color: #1a1a1a;">Reset Password Kamu</h2>
     <p style="color: #444; line-height: 1.6;">
       Kami menerima permintaan untuk reset password akun Kenang Kurinji kamu.
