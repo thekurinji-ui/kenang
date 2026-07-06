@@ -43,6 +43,12 @@ export const updateEventSchema = createEventSchema.partial().extend({
   status: z.enum(["DRAFT", "LIVE", "ENDED", "ARCHIVED"]).optional(),
 });
 
+// Dipakai admin untuk membuat event atas nama client — sama seperti
+// createEventSchema, ditambah email client pemilik event.
+export const adminCreateEventSchema = createEventSchema.extend({
+  ownerEmail: z.string().email("Email client tidak valid"),
+});
+
 export const createAlbumSchema = z.object({
   title: z.string().min(1, "Judul album wajib diisi").max(100),
   description: z.string().max(300).optional(),
