@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useCamera } from "@/hooks/use-camera";
 import { ShutterButton } from "./shutter-button";
 import { FilmSelector } from "./film-selector";
 import { FlashToggle, CameraFlipButton, ExitButton, ShotCounter } from "./camera-controls";
+import { EventCoverScreen } from "./event-cover-screen";
 import { PermissionScreen } from "./permission-screen";
 import { EndOfRoll } from "./end-of-roll";
 import { UploadProgress } from "./upload-progress";
@@ -35,6 +36,11 @@ export function KenangCamera({ event }: KenangCameraProps) {
     uploadShot,
   } = useCamera({ eventCode: event.slug, shotLimit: event.shotLimit });
 
+  // Cover acara ditampilkan sekali di awal, sebelum apa pun terkait kamera
+  // (termasuk request izin) terjadi — murni tampilan, tidak mempengaruhi
+  // state machine di useCamera.
+  const [showCover, setShowCover] = useState(true);
+
   // Auto-return to "ready" after a success/failed toast so the guest can
   // keep shooting without extra taps.
   useEffect(() => {
@@ -48,6 +54,10 @@ export function KenangCamera({ event }: KenangCameraProps) {
     const blob = await capture();
     if (blob) await uploadShot(blob);
   };
+
+  if (showCover) {
+    return <EventCoverScreen event={event} onContinue={() => setShowCover(false)} />;
+  }
 
   if (state === "permission") {
     return (
