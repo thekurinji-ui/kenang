@@ -125,3 +125,38 @@ export function computeExpiresAt(plan: PlanId, from: Date = new Date()): Date | 
   expires.setDate(expires.getDate() + activeDays);
   return expires;
 }
+
+/**
+ * Alias semantik dari `computeExpiresAt`, dipakai saat men-snapshot masa aktif
+ * sebuah Event (bukan Subscription user). Logikanya identik: activeDays plan
+ * dihitung dari `from` (createdAt event).
+ */
+export const computeActiveUntil = computeExpiresAt;
+
+/**
+ * Plan yang BENAR-BENAR berlaku untuk user saat ini. Kalau subscription-nya
+ * sudah lewat masa aktif (expiresAt < sekarang) atau statusnya bukan ACTIVE,
+ * user dianggap kembali ke Kincai (gratis) — supaya limit/fitur premium tidak
+ * "nyangkut" selamanya setelah subscription berakhir.
+ */
+export function getEffectivePlan(
+  subscription: { plan: PlanId; status: string; expiresAt: Date | null } | null | undefined
+): PlanId {
+  if (!subscription) return "KINCAI";
+  if (subscription.status !== "ACTIVE") return "KINCAI";
+  if (subscription.expiresAt && subscription.expiresAt.getTime() < Date.now()) return "KINCAI";
+  return subscription.plan;
+}
+
+/**
+ * Validasi jumlah jepretan (Roll Film) yang dipilih host terhadap opsi yang
+ * diperbolehkan plan-nya. `shotLimit === null` berarti host memilih Unlimited.
+ */
+export function isRollFilmOptionAllowed(plan: PlanId, shotLimit: number | null): boolean {
+  const options = PLAN_LIMITS[plan].rollFilmOptions;
+  if (shotLimit === null) return options.includes("UNLIMITED");
+  if (options.includes(shotLimit as RollFilmOption)) return true;
+  // Angka di luar preset baku (5/12/24/39) hanya boleh kalau plan punya opsi
+  // "Custom" (Gunung Tujuh ke atas).
+  return options.includes("CUSTOM") && Number.isInteger(shotLimit) && shotLimit > 0;
+}
