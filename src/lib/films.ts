@@ -126,4 +126,8 @@ export function getFilmById(id: string): FilmPreset {
   return FILM_COLLECTION.find((f) => f.id === id) ?? FILM_COLLECTION[0];
 }
 
-export const SHOT_COUNT_OPTIONS = [12, 24, 27, 36, null] as const; // null = Unlimited
+// Opsi jumlah jepretan (Roll Film) TIDAK lagi didefinisikan di sini secara
+// hardcoded — daftar itu harus mengikuti plan host (Kincai/Kurinji/Gunung
+// Tujuh/Gunung Kerinci punya opsi berbeda, lihat Blueprint v2.1). Pakai
+// `getRollFilmPresets(plan)` dari `@/lib/plans` di komponen manapun yang
+// butuh daftar ini.
