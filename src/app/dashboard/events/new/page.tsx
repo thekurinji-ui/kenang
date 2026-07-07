@@ -1,6 +1,16 @@
 import { CreateEventForm } from "@/components/dashboard/create-event-form";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getEffectivePlan } from "@/lib/plans";
 
-export default function NewEventPage() {
+export default async function NewEventPage() {
+  const session = await auth();
+  const user = await prisma.user.findUnique({
+    where: { id: session!.user.id },
+    select: { subscription: { select: { plan: true, status: true, expiresAt: true } } },
+  });
+  const plan = getEffectivePlan(user?.subscription);
+
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-6">
       <div>
@@ -9,7 +19,7 @@ export default function NewEventPage() {
           Waktu membuat event kurang dari 1 menit — QR langsung tersedia setelah disimpan.
         </p>
       </div>
-      <CreateEventForm />
+      <CreateEventForm plan={plan} />
     </div>
   );
 }
