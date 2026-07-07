@@ -6,54 +6,32 @@ import { Button } from "@/components/ui/button";
 import { UpgradeButton } from "@/components/dashboard/upgrade-button";
 import { CheckoutBanner } from "@/components/dashboard/checkout-banner";
 import { cn } from "@/lib/utils";
+import { PLAN_LIMITS, isCheckoutPlan, type PlanId } from "@/lib/plans";
 
-const PLANS = [
-  {
-    id: "FREE",
-    name: "Free",
-    price: "Rp0",
-    period: "selamanya",
-    description: "Cukup untuk mencoba di acara kecil.",
-    features: ["1 event aktif", "100 foto per event", "Watermark", "Gallery dasar"],
-  },
-  {
-    id: "PLUS",
-    name: "Plus",
-    price: "Rp99rb",
-    period: "per event",
-    description: "Pas untuk ulang tahun, gathering, dan acara komunitas.",
-    features: ["10 event", "5.000 foto", "Reveal Mode", "Custom cover", "Priority support"],
-  },
-  {
-    id: "PRO",
-    name: "Pro",
-    price: "Rp299rb",
-    period: "per event",
-    description: "Untuk pernikahan dan acara besar dengan banyak tamu.",
-    features: [
-      "Event tanpa batas",
-      "Foto tanpa batas",
-      "Custom branding",
-      "Download ZIP",
-      "Analytics lengkap",
-    ],
-  },
-  {
-    id: "BUSINESS",
-    name: "Business",
-    price: "Kustom",
-    period: "per bulan",
-    description: "Untuk vendor & event organizer dengan banyak acara.",
-    features: ["Multi-user", "Team management", "White label", "Dedicated support", "API access"],
-  },
-] as const;
+const PLAN_DESCRIPTIONS: Record<PlanId, string> = {
+  KINCAI: "Cukup untuk mencoba di acara kecil.",
+  KURINJI: "Pas untuk ulang tahun, gathering, dan acara komunitas.",
+  GUNUNG_TUJUH: "Untuk pernikahan dan acara besar dengan banyak tamu.",
+  GUNUNG_KERINCI: "Untuk vendor & event organizer dengan banyak acara.",
+};
+
+const PLANS = (Object.keys(PLAN_LIMITS) as PlanId[]).map((id) => {
+  const plan = PLAN_LIMITS[id];
+  return {
+    id,
+    name: plan.name,
+    price: plan.priceLabel,
+    description: PLAN_DESCRIPTIONS[id],
+    features: plan.features,
+  };
+});
 
 export default async function SubscriptionPage() {
   const session = await auth();
   const subscription = await prisma.subscription.findUnique({
     where: { userId: session!.user.id },
   });
-  const currentPlan = subscription?.plan ?? "FREE";
+  const currentPlan: PlanId = subscription?.plan ?? "KINCAI";
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-8">
@@ -63,7 +41,7 @@ export default async function SubscriptionPage() {
         </h1>
         <p className="font-body text-sm text-neutral-midnight/60 mt-1">
           Kamu sedang menggunakan plan{" "}
-          <span className="font-medium text-crimson">{currentPlan}</span>.
+          <span className="font-medium text-crimson">{PLAN_LIMITS[currentPlan].name}</span>.
         </p>
       </div>
 
@@ -97,9 +75,6 @@ export default async function SubscriptionPage() {
                 <span className="font-heading text-2xl font-semibold text-neutral-midnight">
                   {plan.price}
                 </span>
-                <span className="font-body text-sm text-neutral-midnight/50">
-                  /{plan.period}
-                </span>
               </div>
 
               <ul className="mt-6 flex-1 space-y-3">
@@ -120,9 +95,9 @@ export default async function SubscriptionPage() {
                 <Button variant="secondary" className="mt-6 w-full" disabled>
                   Plan Saat Ini
                 </Button>
-              ) : plan.id === "PLUS" || plan.id === "PRO" ? (
+              ) : isCheckoutPlan(plan.id) ? (
                 <UpgradeButton plan={plan.id} />
-              ) : plan.id === "FREE" ? (
+              ) : plan.id === "KINCAI" ? (
                 <Button variant="secondary" className="mt-6 w-full" disabled>
                   Plan Dasar
                 </Button>
