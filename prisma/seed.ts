@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { computeActiveUntil } from "../src/lib/plans";
 
 const prisma = new PrismaClient();
 
@@ -31,6 +32,8 @@ async function main() {
       status: "LIVE",
       revealMode: "INSTANT",
       shotLimit: 24,
+      plan: "KURINJI",
+      activeUntil: computeActiveUntil("KURINJI"),
       qrCode: {
         create: {
           code: "pernikahan-demo",
