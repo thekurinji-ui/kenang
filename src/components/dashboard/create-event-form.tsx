@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema } from "@/lib/validation";
-import { SHOT_COUNT_OPTIONS } from "@/lib/films";
+import { getRollFilmPresets, getDefaultRollFilmOption, PLAN_LIMITS, type PlanId } from "@/lib/plans";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,9 +13,19 @@ import type { z } from "zod";
 
 type CreateEventForm = z.infer<typeof createEventSchema>;
 
-export function CreateEventForm() {
+interface CreateEventFormProps {
+  /** Plan efektif user saat ini — menentukan opsi Roll Film mana yang boleh
+   * dipilih (Kincai cuma 5, Kurinji 5/12/24/39, dst — lihat Blueprint v2.1). */
+  plan: PlanId;
+}
+
+export function CreateEventForm({ plan }: CreateEventFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [customMode, setCustomMode] = useState(false);
+  const { presets, allowCustom } = getRollFilmPresets(plan);
+  const planConfig = PLAN_LIMITS[plan];
+
   const {
     register,
     handleSubmit,
@@ -24,7 +34,7 @@ export function CreateEventForm() {
     formState: { errors, isSubmitting },
   } = useForm<CreateEventForm>({
     resolver: zodResolver(createEventSchema),
-    defaultValues: { revealMode: "INSTANT", shotLimit: 24 },
+    defaultValues: { revealMode: "INSTANT", shotLimit: getDefaultRollFilmOption(plan) },
   });
 
   const shotLimit = watch("shotLimit");
@@ -86,13 +96,16 @@ export function CreateEventForm() {
             Batas Jepretan per Tamu
           </label>
           <div className="flex flex-wrap gap-2">
-            {SHOT_COUNT_OPTIONS.map((n) => (
+            {presets.map((n) => (
               <button
                 type="button"
                 key={n ?? "unlimited"}
-                onClick={() => setValue("shotLimit", n)}
+                onClick={() => {
+                  setCustomMode(false);
+                  setValue("shotLimit", n);
+                }}
                 className={`rounded-md px-3 py-1.5 text-sm font-body border transition-colors ${
-                  shotLimit === n
+                  !customMode && shotLimit === n
                     ? "border-crimson bg-crimson-50 text-crimson"
                     : "border-neutral-slate text-neutral-midnight/70"
                 }`}
@@ -100,7 +113,38 @@ export function CreateEventForm() {
                 {n ?? "Unlimited"}
               </button>
             ))}
+            {allowCustom && (
+              <button
+                type="button"
+                onClick={() => setCustomMode(true)}
+                className={`rounded-md px-3 py-1.5 text-sm font-body border transition-colors ${
+                  customMode
+                    ? "border-crimson bg-crimson-50 text-crimson"
+                    : "border-neutral-slate text-neutral-midnight/70"
+                }`}
+              >
+                Custom
+              </button>
+            )}
           </div>
+          {customMode && (
+            <input
+              type="number"
+              min={1}
+              placeholder="Jumlah jepretan"
+              className="mt-1 w-40 rounded-md border border-neutral-slate bg-neutral-white px-3.5 py-2 font-body text-sm text-neutral-midnight"
+              onChange={(e) => setValue("shotLimit", e.target.value ? Number(e.target.value) : null)}
+            />
+          )}
+          {presets.length === 1 && !allowCustom && (
+            <p className="font-body text-xs text-neutral-midnight/50">
+              Paket {planConfig.name} kamu memakai jatah tetap {presets[0]} jepretan per tamu.{" "}
+              <a href="/features#harga" className="text-crimson underline">
+                Upgrade paket
+              </a>{" "}
+              untuk pilihan lebih banyak.
+            </p>
+          )}
         </div>
 
         {serverError && <p className="text-sm text-crimson">{serverError}</p>}
