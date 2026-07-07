@@ -14,7 +14,7 @@ async function main() {
       email: "host@kenangkurinji.test",
       passwordHash,
       role: "OWNER",
-      subscription: { create: { plan: "PLUS" } },
+      subscription: { create: { plan: "KURINJI" } },
     },
   });
 
