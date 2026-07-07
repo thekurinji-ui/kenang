@@ -3,6 +3,7 @@ import { PaymentOrderStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { coreApi } from "@/lib/midtrans";
+import { computeExpiresAt } from "@/lib/plans";
 
 // GET /api/v1/payments/status/{orderId} — cek status transaksi (fallback jika webhook belum sampai)
 export async function GET(
@@ -56,10 +57,11 @@ export async function GET(
         });
 
         if (nextStatus === "PAID") {
+          const expiresAt = computeExpiresAt(order.plan);
           await prisma.subscription.upsert({
             where: { userId: order.userId },
-            update: { plan: order.plan, status: "ACTIVE" },
-            create: { userId: order.userId, plan: order.plan, status: "ACTIVE" },
+            update: { plan: order.plan, status: "ACTIVE", expiresAt },
+            create: { userId: order.userId, plan: order.plan, status: "ACTIVE", expiresAt },
           });
         }
 
