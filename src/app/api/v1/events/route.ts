@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createEventSchema } from "@/lib/validation";
 import { generateUniqueSlug } from "@/lib/slug";
-import { PLAN_LIMITS, computeActiveUntil, getEffectivePlan } from "@/lib/plans";
+import { PLAN_LIMITS, computeActiveUntil, getEffectivePlan, isRollFilmOptionAllowed } from "@/lib/plans";
 
 // GET /api/v1/events — Volume 7 (Event API)
 export async function GET() {
@@ -81,12 +81,23 @@ export async function POST(req: NextRequest) {
   // sekaligus di sini supaya host langsung punya link untuk dibagikan.
   const { title, description, eventDate, location, revealMode, shotLimit } = parsed.data;
 
-  // NOTE: validasi shotLimit terhadap `rollFilmOptions` plan (pakai
-  // isRollFilmOptionAllowed di lib/plans.ts) SENGAJA belum diaktifkan di
-  // sini. create-event-form.tsx masih menawarkan opsi 12/24/27/36 yang tidak
-  // sinkron dengan rollFilmOptions per plan (Kincai cuma 5 jepretan) — kalau
-  // diaktifkan sekarang, user paket gratis tidak akan bisa membuat event
-  // sama sekali. Aktifkan bareng perbaikan UI Roll Film (task berikutnya).
+  // Roll Film fix (Blueprint v2.1): jumlah jepretan yang boleh dipilih host
+  // terbatas sesuai plan-nya (Kincai cuma 5, Kurinji 5/12/24/39, dst).
+  // create-event-form.tsx sekarang cuma menawarkan opsi yang sesuai plan,
+  // tapi tetap divalidasi lagi di server untuk jaga-jaga request langsung
+  // ke API. Admin dikecualikan (konsisten dengan bypass maxEvents di atas).
+  if (!isAdmin && shotLimit !== undefined && !isRollFilmOptionAllowed(plan, shotLimit ?? null)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `Paket ${planConfig.name} kamu tidak punya opsi ${
+          shotLimit ?? "Unlimited"
+        } jepretan. Pilih salah satu opsi Roll Film yang tersedia untuk paketmu.`,
+        code: "ROLL_FILM_NOT_ALLOWED",
+      },
+      { status: 422 }
+    );
+  }
 
   const slug = await generateUniqueSlug(title);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
