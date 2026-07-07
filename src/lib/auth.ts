@@ -9,7 +9,6 @@ import { loginSchema } from "@/lib/validation";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  debug: true, // TEMP: buat lihat detail error asli di Vercel logs, hapus lagi setelah beres
   pages: {
     signIn: "/login",
   },
@@ -40,22 +39,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     // Google Login — opsional, sesuai PRD Volume 2. Aktif hanya bila env terisi.
+    // allowDangerousEmailAccountLinking: Google selalu memverifikasi
+    // kepemilikan email (email_verified), jadi aman untuk otomatis
+    // menyambungkan ke akun yang sudah terdaftar via email/password
+    // dengan email yang sama — tanpa ini, NextAuth menolak dan
+    // melempar OAuthAccountNotLinked.
     ...(process.env.AUTH_GOOGLE_ID
       ? [
           Google({
             clientId: process.env.AUTH_GOOGLE_ID,
             clientSecret: process.env.AUTH_GOOGLE_SECRET,
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.uid = user.id;
+      if (user) {
+        token.uid = user.id;
+        token.picture = user.image ?? (user as { avatarUrl?: string }).avatarUrl ?? token.picture;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.uid as string;
+      if (session.user) {
+        session.user.id = token.uid as string;
+        if (token.picture) session.user.image = token.picture as string;
+      }
       return session;
     },
   },
