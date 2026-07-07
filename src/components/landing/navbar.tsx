@@ -1,8 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
 
-export function LandingNavbar() {
+export async function LandingNavbar() {
+  const session = await auth();
+  const isLoggedIn = Boolean(session?.user);
+
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-slate/70 bg-neutral-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -34,14 +38,22 @@ export function LandingNavbar() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/login">
-            <Button variant="ghost" className="hidden sm:inline-flex">
-              Masuk
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button variant="primary">Buat Event</Button>
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard">
+              <Button variant="primary">Dashboard</Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" className="hidden sm:inline-flex">
+                  Masuk
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button variant="primary">Buat Event</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
