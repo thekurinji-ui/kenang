@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   // Admin tidak terkena batasan paket harga (mis. watermark) untuk event
   // milik mereka sendiri, terlepas dari status subscription-nya.
   const isFreePlan =
-    owner?.role !== "ADMIN" && (!owner?.subscription || owner.subscription.plan === "FREE");
+    owner?.role !== "ADMIN" && (!owner?.subscription || owner.subscription.plan === "KINCAI");
 
   const { storageKey, thumbnailKey, width, height } = await saveToR2(
     file,
