@@ -1,4 +1,5 @@
 import midtransClient from "midtrans-client";
+import { PLAN_LIMITS, type CheckoutPlan } from "@/lib/plans";
 
 const isProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
 
@@ -14,9 +15,9 @@ export const coreApi = new midtransClient.CoreApi({
   clientKey: process.env.MIDTRANS_CLIENT_KEY!,
 });
 
-export const PLAN_PRICES: Record<"PLUS" | "PRO", number> = {
-  PLUS: 99_000,
-  PRO: 299_000,
+export const PLAN_PRICES: Record<CheckoutPlan, number> = {
+  KURINJI: PLAN_LIMITS.KURINJI.price!,
+  GUNUNG_TUJUH: PLAN_LIMITS.GUNUNG_TUJUH.price!,
 };
 
 export function generateOrderId(plan: string) {
