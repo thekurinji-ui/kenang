@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateEventSchema } from "@/lib/validation";
+import { isRollFilmOptionAllowed } from "@/lib/plans";
 
 // GET /api/v1/events/{id}
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -57,10 +58,36 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     );
   }
 
-  const { eventDate, ...rest } = parsed.data;
+  const { eventDate, shotLimit, ...rest } = parsed.data;
+
+  // Roll Film fix (Blueprint v2.1): saat host mengubah batas jepretan lewat
+  // Pengaturan Event, validasi terhadap plan SNAPSHOT event ini (bukan plan
+  // langganan user sekarang) — event yang sudah dibuat tetap terkunci ke
+  // opsi Roll Film plan pada saat ia dibuat. Admin dikecualikan.
+  if (shotLimit !== undefined) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+    const isAdmin = user?.role === "ADMIN";
+
+    if (!isAdmin && !isRollFilmOptionAllowed(existing.plan, shotLimit ?? null)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Event ini pakai paket ${existing.plan}, tidak punya opsi ${
+            shotLimit ?? "Unlimited"
+          } jepretan.`,
+          code: "ROLL_FILM_NOT_ALLOWED",
+        },
+        { status: 422 }
+      );
+    }
+  }
+
   const event = await prisma.event.update({
     where: { id: params.id },
-    data: { ...rest, eventDate: eventDate ? new Date(eventDate) : undefined },
+    data: { ...rest, shotLimit, eventDate: eventDate ? new Date(eventDate) : undefined },
   });
 
   return NextResponse.json({ success: true, data: event });
