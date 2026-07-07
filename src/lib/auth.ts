@@ -9,6 +9,7 @@ import { loginSchema } from "@/lib/validation";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
+  debug: true, // TEMP: buat lihat detail error asli di Vercel logs, hapus lagi setelah beres
   pages: {
     signIn: "/login",
   },
