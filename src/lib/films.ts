@@ -1,15 +1,25 @@
-// Kenang Kurinji Blueprint v2.0 — Volume 5: Kenang Camera > Film Collection
+// Kenang Kurinji Blueprint v2.0/v2.1 — Volume 5: Kenang Camera > Film Collection
 //
-// Setiap film memakai LUT 3D (.cube, dikonversi ke PNG strip) dari paket
-// SparkleStock "Disposable Camera" untuk color grading, diterapkan lewat
-// WebGL (lihat `lib/webgl-lut.ts`). `lutUrl` dipakai baik untuk live preview
+// Setiap film memakai LUT 3D (.cube, dikonversi ke PNG strip lewat
+// `scripts/convert-lut.mjs`) untuk color grading, diterapkan lewat WebGL
+// (lihat `lib/webgl-lut.ts`). `lutUrl` dipakai baik untuk live preview
 // (elemen <canvas> di viewfinder) maupun saat capture, supaya hasil jepretan
 // konsisten 1:1 dengan yang dilihat guest.
 //
 // `grain` dan `vignette` tetap diterapkan secara terpisah di atas hasil LUT
 // (lihat `hooks/use-camera.ts`) karena LUT hanya mengubah warna, bukan tekstur.
+//
+// --- Tier (Blueprint v2.1 — Subscription & Roll Film) ---------------------
+// "STANDARD" (8 film SparkleStock Disposable Camera) tersedia untuk semua
+// plan, termasuk Kincai (gratis). "PREMIUM" (Film Collection eksklusif —
+// varian Fuji/Kodak print-stock) HANYA tersedia untuk plan Gunung Tujuh ke
+// atas, sesuai Blueprint v2.1. Jangan filter tier ini di komponen UI secara
+// manual — selalu pakai `getFilmsForPlan(plan)` dari `@/lib/plans`.
+
+export type FilmTier = "STANDARD" | "PREMIUM";
 
 export type FilmId =
+  // Standard — semua plan
   | "snap-01"
   | "snap-02"
   | "road-trip-01"
@@ -17,7 +27,19 @@ export type FilmId =
   | "iso800-01"
   | "iso800-02"
   | "summer-01"
-  | "summer-02";
+  | "summer-02"
+  // Premium — eksklusif Gunung Tujuh ke atas
+  | "fuji-eterna-250d-3510"
+  | "fuji-eterna-250d-2395"
+  | "fuji-f125-2393"
+  | "fuji-f125-2395"
+  | "fuji-reala-500d"
+  | "kodak-5218-2383"
+  | "kodak-5218-2395"
+  | "kodak-5295"
+  | "filmstock-50"
+  | "late-sunset"
+  | "night-from-day";
 
 export interface FilmPreset {
   id: FilmId;
@@ -29,6 +51,7 @@ export interface FilmPreset {
   lutSize: number; // resolution of the source .cube (e.g. 32 = 32x32x32)
   grain: number; // 0–1 overlay opacity for film grain texture
   vignette: boolean;
+  tier: FilmTier;
 }
 
 export const FILM_COLLECTION: FilmPreset[] = [
@@ -42,6 +65,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.12,
     vignette: true,
+    tier: "STANDARD",
   },
   {
     id: "snap-02",
@@ -53,6 +77,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.14,
     vignette: true,
+    tier: "STANDARD",
   },
   {
     id: "road-trip-01",
@@ -64,6 +89,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.08,
     vignette: false,
+    tier: "STANDARD",
   },
   {
     id: "road-trip-02",
@@ -75,6 +101,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.09,
     vignette: false,
+    tier: "STANDARD",
   },
   {
     id: "iso800-01",
@@ -86,6 +113,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.22,
     vignette: true,
+    tier: "STANDARD",
   },
   {
     id: "iso800-02",
@@ -97,6 +125,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.24,
     vignette: true,
+    tier: "STANDARD",
   },
   {
     id: "summer-01",
@@ -108,6 +137,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.06,
     vignette: false,
+    tier: "STANDARD",
   },
   {
     id: "summer-02",
@@ -119,11 +149,154 @@ export const FILM_COLLECTION: FilmPreset[] = [
     lutSize: 32,
     grain: 0.07,
     vignette: true,
+    tier: "STANDARD",
   },
 ];
 
+// Film Collection premium (Blueprint v2.1 — eksklusif Gunung Tujuh ke atas).
+// LUT asli (.cube, LUT_3D_SIZE 64) dikonversi lewat `scripts/convert-lut.mjs`.
+// Tiga film (Fuji Eterna 250D, Fuji F125, Kodak 5218) tersedia dalam 2 varian
+// print-stock berbeda — keduanya disertakan sebagai preset terpisah supaya
+// host/tamu bisa memilih karakter warna yang paling cocok.
+export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
+  {
+    id: "fuji-eterna-250d-3510",
+    name: "Fuji Eterna 250D — Fuji 3510",
+    inspiredBy: "Fuji Eterna 250D (print Fuji 3510)",
+    description: "Warna sinematik lembut dengan highlight hangat khas print Fuji.",
+    swatch: "#9E95A3",
+    lutUrl: "/luts/fuji-eterna-250d-3510.png",
+    lutSize: 64,
+    grain: 0.1,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "fuji-eterna-250d-2395",
+    name: "Fuji Eterna 250D — Kodak 2395",
+    inspiredBy: "Fuji Eterna 250D (print Kodak 2395)",
+    description: "Karakter Eterna 250D dengan kontras print Kodak, lebih netral.",
+    swatch: "#AF9E95",
+    lutUrl: "/luts/fuji-eterna-250d-2395.png",
+    lutSize: 64,
+    grain: 0.1,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "fuji-f125-2393",
+    name: "Fuji F125 — Kodak 2393",
+    inspiredBy: "Fuji F125 (print Kodak 2393)",
+    description: "Tone hangat seimbang, cocok untuk potret siang hari.",
+    swatch: "#AA9182",
+    lutUrl: "/luts/fuji-f125-2393.png",
+    lutSize: 64,
+    grain: 0.1,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "fuji-f125-2395",
+    name: "Fuji F125 — Kodak 2395",
+    inspiredBy: "Fuji F125 (print Kodak 2395)",
+    description: "Varian F125 dengan skin tone lebih lembut dan shadow lebih dalam.",
+    swatch: "#AA958E",
+    lutUrl: "/luts/fuji-f125-2395.png",
+    lutSize: 64,
+    grain: 0.1,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "fuji-reala-500d",
+    name: "Fuji Reala 500D",
+    inspiredBy: "Fuji Reala 500D (print Kodak 2393)",
+    description: "Saturasi natural dengan sedikit sentuhan merah muda pada skin tone.",
+    swatch: "#AC9587",
+    lutUrl: "/luts/fuji-reala-500d.png",
+    lutSize: 64,
+    grain: 0.13,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "kodak-5218-2383",
+    name: "Kodak 5218 — Kodak 2383",
+    inspiredBy: "Kodak Vision3 500T 5218 (print Kodak 2383)",
+    description: "Klasik sinematik Kodak, kontras kuat dengan shadow kehijauan.",
+    swatch: "#AFA59A",
+    lutUrl: "/luts/kodak-5218-2383.png",
+    lutSize: 64,
+    grain: 0.15,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "kodak-5218-2395",
+    name: "Kodak 5218 — Kodak 2395",
+    inspiredBy: "Kodak Vision3 500T 5218 (print Kodak 2395)",
+    description: "Varian 5218 yang lebih netral dan lembut di highlight.",
+    swatch: "#AEA19C",
+    lutUrl: "/luts/kodak-5218-2395.png",
+    lutSize: 64,
+    grain: 0.15,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "kodak-5295",
+    name: "Kodak 5295",
+    inspiredBy: "Kodak Vision2 500T 5295 (print Fuji 3510)",
+    description: "Grain halus dengan warna hangat, cocok untuk suasana intim indoor.",
+    swatch: "#AF9E90",
+    lutUrl: "/luts/kodak-5295.png",
+    lutSize: 64,
+    grain: 0.16,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "filmstock-50",
+    name: "Filmstock 50",
+    inspiredBy: "Filmstock 50",
+    description: "ISO rendah, warna bersih dan tajam dengan grain minimal.",
+    swatch: "#D4C3A5",
+    lutUrl: "/luts/filmstock-50.png",
+    lutSize: 64,
+    grain: 0.05,
+    vignette: false,
+    tier: "PREMIUM",
+  },
+  {
+    id: "late-sunset",
+    name: "Late Sunset",
+    inspiredBy: "Late Sunset",
+    description: "Gradasi warna senja keunguan-merah muda, dramatis untuk golden hour.",
+    swatch: "#744857",
+    lutUrl: "/luts/late-sunset.png",
+    lutSize: 64,
+    grain: 0.1,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+  {
+    id: "night-from-day",
+    name: "Night From Day",
+    inspiredBy: "Night From Day",
+    description: "Efek day-for-night sinematik, tone biru gelap dramatis.",
+    swatch: "#2F364D",
+    lutUrl: "/luts/night-from-day.png",
+    lutSize: 64,
+    grain: 0.18,
+    vignette: true,
+    tier: "PREMIUM",
+  },
+];
+
+export const ALL_FILMS: FilmPreset[] = [...FILM_COLLECTION, ...PREMIUM_FILM_COLLECTION];
+
 export function getFilmById(id: string): FilmPreset {
-  return FILM_COLLECTION.find((f) => f.id === id) ?? FILM_COLLECTION[0];
+  return ALL_FILMS.find((f) => f.id === id) ?? FILM_COLLECTION[0];
 }
 
 // Opsi jumlah jepretan (Roll Film) TIDAK lagi didefinisikan di sini secara
