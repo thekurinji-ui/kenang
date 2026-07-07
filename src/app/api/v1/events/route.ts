@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createEventSchema } from "@/lib/validation";
 import { generateUniqueSlug } from "@/lib/slug";
+import { PLAN_LIMITS, computeActiveUntil, getEffectivePlan } from "@/lib/plans";
 
 // GET /api/v1/events — Volume 7 (Event API)
 export async function GET() {
@@ -46,9 +47,47 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      role: true,
+      subscription: { select: { plan: true, status: true, expiresAt: true } },
+    },
+  });
+
+  const isAdmin = user?.role === "ADMIN";
+  const plan = getEffectivePlan(user?.subscription);
+  const planConfig = PLAN_LIMITS[plan];
+
+  // Enforcement (Blueprint v2.1): 1 Event per plan (Kincai/Kurinji/Gunung
+  // Tujuh) — admin dikecualikan dari batas ini untuk keperluan operasional.
+  if (!isAdmin && planConfig.limits.maxEvents !== null) {
+    const eventCount = await prisma.event.count({
+      where: { ownerId: session.user.id, deletedAt: null },
+    });
+    if (eventCount >= planConfig.limits.maxEvents) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Paket ${planConfig.name} kamu hanya bisa punya ${planConfig.limits.maxEvents} event aktif. Upgrade paket untuk membuat event baru.`,
+          code: "EVENT_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   // Business rule (Volume 2): satu QR hanya untuk satu event — dibuat
   // sekaligus di sini supaya host langsung punya link untuk dibagikan.
   const { title, description, eventDate, location, revealMode, shotLimit } = parsed.data;
+
+  // NOTE: validasi shotLimit terhadap `rollFilmOptions` plan (pakai
+  // isRollFilmOptionAllowed di lib/plans.ts) SENGAJA belum diaktifkan di
+  // sini. create-event-form.tsx masih menawarkan opsi 12/24/27/36 yang tidak
+  // sinkron dengan rollFilmOptions per plan (Kincai cuma 5 jepretan) — kalau
+  // diaktifkan sekarang, user paket gratis tidak akan bisa membuat event
+  // sama sekali. Aktifkan bareng perbaikan UI Roll Film (task berikutnya).
+
   const slug = await generateUniqueSlug(title);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -63,6 +102,11 @@ export async function POST(req: NextRequest) {
       revealMode,
       shotLimit: shotLimit ?? null,
       status: "DRAFT",
+      // Snapshot plan + masa aktif event (lihat catatan di schema.prisma).
+      // Admin dapat activeUntil = null (tanpa batas) untuk event mereka
+      // sendiri, konsisten dengan bypass batasan paket lain.
+      plan,
+      activeUntil: isAdmin ? null : computeActiveUntil(plan, new Date()),
       qrCode: {
         create: { code: slug, url: `${appUrl}/e/${slug}` },
       },
