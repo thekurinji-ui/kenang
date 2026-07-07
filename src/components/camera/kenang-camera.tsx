@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCamera } from "@/hooks/use-camera";
+import { getFilmsForPlan } from "@/lib/plans";
 import { ShutterButton } from "./shutter-button";
 import { FilmSelector } from "./film-selector";
 import { FlashToggle, CameraFlipButton, ExitButton, ShotCounter } from "./camera-controls";
@@ -36,6 +37,11 @@ export function KenangCamera({ event }: KenangCameraProps) {
     capture,
     uploadShot,
   } = useCamera({ eventCode: event.slug, shotLimit: event.shotLimit });
+
+  // Film Collection tersedia buat guest mengikuti plan host (Blueprint v2.1
+  // — LUT premium eksklusif Gunung Tujuh ke atas). Dihitung sekali per event
+  // plan, bukan di-recompute tiap render.
+  const availableFilms = useMemo(() => getFilmsForPlan(event.plan), [event.plan]);
 
   // Cover acara ditampilkan sekali di awal, sebelum apa pun terkait kamera
   // (termasuk request izin) terjadi — murni tampilan, tidak mempengaruhi
@@ -113,7 +119,7 @@ export function KenangCamera({ event }: KenangCameraProps) {
 
       {/* Bottom controls */}
       <div className="absolute bottom-0 inset-x-0 z-20 pb-8 pt-4 bg-gradient-to-t from-black/70 to-transparent">
-        <FilmSelector selected={selectedFilm} onSelect={setSelectedFilm} />
+        <FilmSelector selected={selectedFilm} onSelect={setSelectedFilm} films={availableFilms} />
         <div className="flex items-center justify-center gap-10 mt-4">
           <div className="w-11" /> {/* spacer to balance the flip button */}
           <ShutterButton onCapture={handleCapture} disabled={state !== "ready"} />
