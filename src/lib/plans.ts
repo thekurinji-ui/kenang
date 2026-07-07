@@ -160,3 +160,28 @@ export function isRollFilmOptionAllowed(plan: PlanId, shotLimit: number | null):
   // "Custom" (Gunung Tujuh ke atas).
   return options.includes("CUSTOM") && Number.isInteger(shotLimit) && shotLimit > 0;
 }
+
+/**
+ * Opsi Roll Film yang ditampilkan sebagai preset chip di UI (create/edit
+ * event form), diturunkan dari `rollFilmOptions` plan — jangan hardcode
+ * daftar angka di komponen manapun, selalu ambil dari sini supaya otomatis
+ * sinkron kalau blueprint plan berubah.
+ */
+export function getRollFilmPresets(
+  plan: PlanId
+): { presets: (number | null)[]; allowCustom: boolean } {
+  const options = PLAN_LIMITS[plan].rollFilmOptions;
+  const presets = options
+    .filter((o): o is 5 | 12 | 24 | 39 | "UNLIMITED" => o !== "CUSTOM")
+    .map((o) => (o === "UNLIMITED" ? null : o));
+  return { presets, allowCustom: options.includes("CUSTOM") };
+}
+
+/** Default jepretan yang dipilihkan saat form pertama dibuka: 24 ("Classic",
+ * per terminologi blueprint) kalau plan mengizinkannya, kalau tidak jatuh
+ * ke opsi pertama yang tersedia untuk plan itu. */
+export function getDefaultRollFilmOption(plan: PlanId): number | null {
+  const { presets } = getRollFilmPresets(plan);
+  if (presets.includes(24)) return 24;
+  return presets[0] ?? null;
+}
