@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { computeExpiresAt } from "@/lib/plans";
 
 function verifySignature(
   orderId: string,
@@ -74,10 +75,11 @@ export async function POST(req: NextRequest) {
   });
 
   if (nextStatus === "PAID") {
+    const expiresAt = computeExpiresAt(order.plan);
     await prisma.subscription.upsert({
       where: { userId: order.userId },
-      update: { plan: order.plan, status: "ACTIVE" },
-      create: { userId: order.userId, plan: order.plan, status: "ACTIVE" },
+      update: { plan: order.plan, status: "ACTIVE", expiresAt },
+      create: { userId: order.userId, plan: order.plan, status: "ACTIVE", expiresAt },
     });
   }
 
