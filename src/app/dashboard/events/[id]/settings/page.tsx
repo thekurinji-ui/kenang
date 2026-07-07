@@ -38,6 +38,7 @@ export default async function EventSettingsPage({ params }: PageProps) {
 
       <EditEventForm
         eventId={event.id}
+        plan={event.plan}
         defaultValues={{
           title: event.title,
           location: event.location,
