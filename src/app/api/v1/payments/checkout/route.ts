@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { snap, PLAN_PRICES, generateOrderId } from "@/lib/midtrans";
-
-const UPGRADABLE_PLANS = ["PLUS", "PRO"] as const;
-type UpgradablePlan = (typeof UPGRADABLE_PLANS)[number];
-
-function isUpgradablePlan(value: unknown): value is UpgradablePlan {
-  return UPGRADABLE_PLANS.includes(value as UpgradablePlan);
-}
+import { isCheckoutPlan, PLAN_LIMITS } from "@/lib/plans";
 
 // POST /api/v1/payments/checkout — buat transaksi Midtrans Snap untuk upgrade plan
 export async function POST(req: NextRequest) {
@@ -22,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const plan = body.plan;
-  if (!isUpgradablePlan(plan)) {
+  if (!isCheckoutPlan(plan)) {
     return NextResponse.json(
       { success: false, message: "Plan tidak valid", code: "INVALID_PLAN" },
       { status: 422 }
@@ -66,7 +60,7 @@ export async function POST(req: NextRequest) {
           id: `plan-${plan.toLowerCase()}`,
           price: amount,
           quantity: 1,
-          name: `Kenang Kurinji — Upgrade Plan ${plan}`,
+          name: `Kenang Kurinji — Upgrade Plan ${PLAN_LIMITS[plan].name}`,
         },
       ],
       callbacks: {
