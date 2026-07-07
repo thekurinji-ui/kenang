@@ -135,7 +135,7 @@ export default function AdminUsersPage() {
                     <p className="text-neutral-midnight/50 text-xs">{u.email}</p>
                   </td>
                   <td className="p-4 text-neutral-midnight/70">
-                    {u.subscription?.plan ?? "FREE"}
+                    {u.subscription?.plan ?? "KINCAI"}
                   </td>
                   <td className="p-4 text-neutral-midnight/70">{u._count.events}</td>
                   <td className="p-4 text-neutral-midnight/70">
