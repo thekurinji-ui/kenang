@@ -2,65 +2,175 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const PLANS = [
+interface FeatureSection {
+  title: string;
+  items: string[];
+}
+
+interface Plan {
+  id: string;
+  icon: string;
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  highlighted: boolean;
+  sections: FeatureSection[];
+  rollFilm: string[];
+  cta: string;
+  href: string;
+}
+
+const PLANS: Plan[] = [
   {
-    id: "free",
-    name: "Free",
-    price: "Rp0",
-    period: "selamanya",
+    id: "kincai",
+    icon: "🌿",
+    name: "Kincai",
+    price: "Gratis",
+    period: "30 hari",
     description: "Cukup untuk mencoba di acara kecil.",
-    features: ["1 event aktif", "50 foto per event", "6 film preset", "Galeri dasar"],
+    highlighted: false,
+    sections: [
+      {
+        title: "Limit",
+        items: ["1 event", "Maks. 10 tamu", "Maks. 100 foto", "Aktif 30 hari"],
+      },
+      {
+        title: "Fitur",
+        items: [
+          "QR Upload",
+          "Disposable Camera",
+          "Gallery Online",
+          "Download foto individu",
+          "Watermark Kenang Kurinji",
+        ],
+      },
+    ],
+    rollFilm: ["5 jepretan per tamu (tetap)"],
     cta: "Mulai Gratis",
-    highlighted: false,
+    href: "/register",
   },
   {
-    id: "plus",
-    name: "Plus",
-    price: "Rp99rb",
+    id: "kurinji",
+    icon: "🌸",
+    name: "Kurinji",
+    price: "Rp79.000",
     period: "per event",
-    description: "Pas untuk ulang tahun, gathering, dan acara komunitas.",
-    features: [
-      "1 event",
-      "500 foto",
-      "6 film preset",
-      "Download galeri ZIP",
-      "Hapus watermark",
-    ],
-    cta: "Pilih Plus",
+    description: "Pilihan pas buat acara personal dengan tamu lebih banyak.",
     highlighted: true,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "Rp299rb",
-    period: "per event",
-    description: "Untuk pernikahan dan acara besar dengan banyak tamu.",
-    features: [
-      "1 event",
-      "Foto tanpa batas",
-      "Semua film preset",
-      "Albums & organisasi foto",
-      "Analytics lengkap",
-      "Prioritas support",
+    sections: [
+      {
+        title: "Limit",
+        items: [
+          "1 event",
+          "Maks. 100 tamu",
+          "Maks. 4.000 foto",
+          "Maks. 500 video",
+          "Aktif 1 tahun",
+        ],
+      },
+      {
+        title: "Fitur",
+        items: [
+          "Semua fitur Kincai",
+          "Tanpa watermark",
+          "Guest book digital",
+          "Reveal gallery",
+          "Download ZIP",
+          "Custom cover event",
+          "Prioritas upload",
+        ],
+      },
     ],
-    cta: "Pilih Pro",
-    highlighted: false,
+    rollFilm: ["5", "12", "24 (Classic)", "39 (Extended)"],
+    cta: "Pilih Kurinji",
+    href: "/register",
   },
   {
-    id: "business",
-    name: "Business",
+    id: "gunung-tujuh",
+    icon: "🌊",
+    name: "Gunung Tujuh",
+    price: "Rp199.000",
+    period: "per event",
+    description: "Untuk acara besar yang butuh kualitas dan kontrol penuh.",
+    highlighted: false,
+    sections: [
+      {
+        title: "Limit",
+        items: [
+          "1 event",
+          "Maks. 300 tamu",
+          "Maks. 12.000 foto",
+          "Maks. 2.000 video",
+          "Aktif 1 tahun",
+        ],
+      },
+      { title: "Fitur", items: ["Semua fitur Kurinji"] },
+      {
+        title: "Film Collection",
+        items: [
+          "Fuji Eterna 250D",
+          "Fuji F125",
+          "Fuji Reala 500D",
+          "Kodak 5218",
+          "Kodak 5295",
+          "Filmstock 50",
+          "Late Sunset",
+          "Night From Day",
+        ],
+      },
+      {
+        title: "Tambahan",
+        items: [
+          "Preview filter",
+          "AI Best Shot",
+          "AI Blur Detection",
+          "Analytics dashboard",
+          "Multi QR",
+          "Album privat",
+          "Password gallery",
+          "Custom branding",
+        ],
+      },
+    ],
+    rollFilm: ["5", "12", "24", "39", "Unlimited", "Custom"],
+    cta: "Pilih Gunung Tujuh",
+    href: "/register",
+  },
+  {
+    id: "gunung-kerinci",
+    icon: "🏔",
+    name: "Gunung Kerinci",
     price: "Kustom",
     period: "per bulan",
-    description: "Untuk vendor & event organizer dengan banyak acara.",
-    features: [
-      "Event tanpa batas",
-      "Foto tanpa batas",
-      "White-label branding",
-      "Multi-admin",
-      "Dedicated support",
-    ],
-    cta: "Hubungi Kami",
+    description: "Untuk vendor & enterprise yang butuh solusi custom.",
     highlighted: false,
+    sections: [
+      {
+        title: "Fitur",
+        items: [
+          "Semua fitur Gunung Tujuh",
+          "Unlimited event",
+          "Unlimited tamu",
+          "Unlimited storage (fair use)",
+          "White label",
+          "Custom domain",
+          "API access",
+          "Multi user",
+          "Team management",
+          "Dedicated account manager",
+          "Priority support",
+          "Custom feature request",
+        ],
+      },
+      {
+        title: "Film Collection",
+        items: ["Semua LUT", "Import LUT (.cube)", "Custom film collection", "Custom preset"],
+      },
+    ],
+    rollFilm: ["Per QR area", "Per kategori tamu", "Custom"],
+    cta: "Hubungi Kami",
+    href: "/contact",
   },
 ];
 
@@ -77,7 +187,7 @@ export function LandingPricing() {
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-4">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -93,40 +203,61 @@ export function LandingPricing() {
                   Paling Populer
                 </span>
               )}
-              <h3 className="font-heading text-lg font-semibold text-neutral-midnight">
+
+              <h3 className="flex items-center gap-1.5 font-heading text-lg font-semibold text-neutral-midnight">
+                <span aria-hidden>{plan.icon}</span>
                 {plan.name}
               </h3>
-              <p className="mt-1 font-body text-sm text-neutral-midnight/60">
-                {plan.description}
-              </p>
+              <p className="mt-1 font-body text-sm text-neutral-midnight/60">{plan.description}</p>
+
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="font-heading text-3xl font-semibold text-neutral-midnight">
                   {plan.price}
                 </span>
-                <span className="font-body text-sm text-neutral-midnight/50">
-                  /{plan.period}
-                </span>
+                <span className="font-body text-sm text-neutral-midnight/50">/{plan.period}</span>
               </div>
 
-              <ul className="mt-6 flex-1 space-y-3">
-                {plan.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2 font-body text-sm text-neutral-midnight/80"
-                  >
-                    <span className="mt-0.5 text-crimson" aria-hidden>
-                      ✓
-                    </span>
-                    {feature}
-                  </li>
+              <div className="mt-6 flex-1 space-y-5">
+                {plan.sections.map((section) => (
+                  <div key={section.title}>
+                    <p className="font-body text-xs font-semibold uppercase tracking-wide text-neutral-midnight/40">
+                      {section.title}
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                      {section.items.map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-start gap-2 font-body text-sm text-neutral-midnight/80"
+                        >
+                          <span className="mt-0.5 text-crimson" aria-hidden>
+                            ✓
+                          </span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
 
-              <Link href="/register" className="mt-6">
-                <Button
-                  variant={plan.highlighted ? "primary" : "secondary"}
-                  className="w-full"
-                >
+                <div>
+                  <p className="font-body text-xs font-semibold uppercase tracking-wide text-neutral-midnight/40">
+                    Roll Film
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {plan.rollFilm.map((roll) => (
+                      <span
+                        key={roll}
+                        className="rounded-full bg-neutral-slate/40 px-2.5 py-1 font-body text-xs font-medium text-neutral-midnight/70"
+                      >
+                        {roll}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <Link href={plan.href} className="mt-6">
+                <Button variant={plan.highlighted ? "primary" : "secondary"} className="w-full">
                   {plan.cta}
                 </Button>
               </Link>
