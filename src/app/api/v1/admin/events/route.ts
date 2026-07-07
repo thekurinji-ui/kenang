@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { adminCreateEventSchema } from "@/lib/validation";
 import { generateUniqueSlug } from "@/lib/slug";
+import { computeActiveUntil, getEffectivePlan } from "@/lib/plans";
 
 const PAGE_SIZE = 20;
 
@@ -89,7 +90,10 @@ export async function POST(req: NextRequest) {
   const { ownerEmail, title, description, eventDate, location, revealMode, shotLimit } =
     parsed.data;
 
-  const owner = await prisma.user.findUnique({ where: { email: ownerEmail } });
+  const owner = await prisma.user.findUnique({
+    where: { email: ownerEmail },
+    include: { subscription: { select: { plan: true, status: true, expiresAt: true } } },
+  });
   if (!owner) {
     return NextResponse.json(
       { success: false, message: "Client dengan email tersebut tidak ditemukan", code: "OWNER_NOT_FOUND" },
@@ -99,6 +103,12 @@ export async function POST(req: NextRequest) {
 
   const slug = await generateUniqueSlug(title);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  // Snapshot plan/masa aktif berdasarkan plan CLIENT (owner), bukan admin —
+  // admin cuma membuatkan event, bukan pemilik entitlement-nya. Tidak ada
+  // pengecekan maxEvents di sini: admin memang boleh membuatkan event
+  // tambahan untuk client atas permintaan khusus (mis. Gunung Kerinci).
+  const plan = getEffectivePlan(owner.subscription);
 
   const event = await prisma.event.create({
     data: {
@@ -111,6 +121,8 @@ export async function POST(req: NextRequest) {
       revealMode,
       shotLimit: shotLimit ?? null,
       status: "DRAFT",
+      plan,
+      activeUntil: computeActiveUntil(plan, new Date()),
       qrCode: {
         create: { code: slug, url: `${appUrl}/e/${slug}` },
       },
