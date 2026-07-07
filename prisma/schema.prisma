@@ -123,6 +123,14 @@ model Event {
   status       EventStatus @default(DRAFT)
   revealMode   RevealMode  @default(INSTANT) @map("reveal_mode")
   shotLimit    Int?        @map("shot_limit") // null = unlimited
+  // Snapshot plan pemilik SAAT event dibuat (Volume 2/blueprint v2.1: harga
+  // per-Event, jadi limit event ini tidak boleh ikut berubah kalau host
+  // upgrade/downgrade subscription belakangan).
+  plan         Plan        @default(KINCAI)
+  // Masa aktif event: createdAt + activeDays plan (30 hari Kincai, 1 tahun
+  // Kurinji/Gunung Tujuh, null/tanpa batas untuk Gunung Kerinci). Setelah
+  // lewat, event full-lock — guest flow (join, upload, buka halaman) ditolak.
+  activeUntil  DateTime?   @map("active_until")
   deletedAt    DateTime?   @map("deleted_at") // soft delete
 
   guests       Guest[]
