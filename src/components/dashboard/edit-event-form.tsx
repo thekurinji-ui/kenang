@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateEventSchema } from "@/lib/validation";
-import { SHOT_COUNT_OPTIONS } from "@/lib/films";
+import { getRollFilmPresets, PLAN_LIMITS, type PlanId } from "@/lib/plans";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,10 @@ type EditEventForm = z.infer<typeof updateEventSchema>;
 
 interface EditEventFormProps {
   eventId: string;
+  /** Plan SNAPSHOT event ini (bukan plan langganan user saat ini) — event
+   * yang sudah dibuat tetap terkunci ke opsi Roll Film plan pada saat ia
+   * dibuat, sesuai catatan di prisma/schema.prisma. */
+  plan: PlanId;
   defaultValues: {
     title: string;
     location: string | null;
@@ -25,10 +29,19 @@ interface EditEventFormProps {
   };
 }
 
-export function EditEventForm({ eventId, defaultValues }: EditEventFormProps) {
+export function EditEventForm({ eventId, plan, defaultValues }: EditEventFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { presets, allowCustom } = getRollFilmPresets(plan);
+  const planConfig = PLAN_LIMITS[plan];
+  // Roll film mode "Custom" harus dinyalakan dari awal kalau nilai
+  // shotLimit event ini bukan salah satu preset baku (mis. di-set manual
+  // lewat admin panel) — supaya tidak "hilang" begitu form dibuka.
+  const [customMode, setCustomMode] = useState(
+    defaultValues.shotLimit !== null && !presets.includes(defaultValues.shotLimit)
+  );
+
   const {
     register,
     handleSubmit,
@@ -141,13 +154,16 @@ export function EditEventForm({ eventId, defaultValues }: EditEventFormProps) {
               Batas Jepretan per Tamu
             </label>
             <div className="flex flex-wrap gap-2">
-              {SHOT_COUNT_OPTIONS.map((n) => (
+              {presets.map((n) => (
                 <button
                   type="button"
                   key={n ?? "unlimited"}
-                  onClick={() => setValue("shotLimit", n)}
+                  onClick={() => {
+                    setCustomMode(false);
+                    setValue("shotLimit", n);
+                  }}
                   className={`rounded-md px-3 py-1.5 text-sm font-body border transition-colors ${
-                    shotLimit === n
+                    !customMode && shotLimit === n
                       ? "border-crimson bg-crimson-50 text-crimson"
                       : "border-neutral-slate text-neutral-midnight/70"
                   }`}
@@ -155,7 +171,38 @@ export function EditEventForm({ eventId, defaultValues }: EditEventFormProps) {
                   {n ?? "Unlimited"}
                 </button>
               ))}
+              {allowCustom && (
+                <button
+                  type="button"
+                  onClick={() => setCustomMode(true)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-body border transition-colors ${
+                    customMode
+                      ? "border-crimson bg-crimson-50 text-crimson"
+                      : "border-neutral-slate text-neutral-midnight/70"
+                  }`}
+                >
+                  Custom
+                </button>
+              )}
             </div>
+            {customMode && (
+              <input
+                type="number"
+                min={1}
+                placeholder="Jumlah jepretan"
+                defaultValue={shotLimit ?? undefined}
+                className="mt-1 w-40 rounded-md border border-neutral-slate bg-neutral-white px-3.5 py-2 font-body text-sm text-neutral-midnight"
+                onChange={(e) =>
+                  setValue("shotLimit", e.target.value ? Number(e.target.value) : null)
+                }
+              />
+            )}
+            {presets.length === 1 && !allowCustom && (
+              <p className="font-body text-xs text-neutral-midnight/50">
+                Event ini dibuat dengan paket {planConfig.name}, jatahnya tetap{" "}
+                {presets[0]} jepretan per tamu dan tidak bisa diubah di paket ini.
+              </p>
+            )}
           </div>
 
           {serverError && <p className="text-sm text-crimson">{serverError}</p>}
