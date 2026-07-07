@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validation";
+import { computeExpiresAt } from "@/lib/plans";
 
 // POST /api/v1/auth/register — Volume 7 (Authentication API)
 export async function POST(req: NextRequest) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       name,
       email,
       passwordHash,
-      subscription: { create: { plan: "FREE" } },
+      subscription: { create: { plan: "KINCAI", expiresAt: computeExpiresAt("KINCAI") } },
     },
     select: { id: true, name: true, email: true },
   });
