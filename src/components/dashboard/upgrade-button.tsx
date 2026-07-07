@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { CheckoutPlan } from "@/lib/plans";
 
 interface UpgradeButtonProps {
-  plan: "PLUS" | "PRO";
+  plan: CheckoutPlan;
 }
 
 export function UpgradeButton({ plan }: UpgradeButtonProps) {
