@@ -1,4 +1,5 @@
 import type { FilmId } from "@/lib/films";
+import type { PlanId } from "@/lib/plans";
 
 export type CameraState =
   | "permission"
@@ -21,6 +22,9 @@ export interface PublicEventInfo {
   status: "DRAFT" | "LIVE" | "ENDED" | "ARCHIVED";
   revealMode: "INSTANT" | "AFTER_EVENT_ENDS";
   shotLimit: number | null;
+  /** Plan pemilik event (snapshot saat event dibuat) — menentukan Film
+   * Collection mana yang tersedia buat guest, lihat `getFilmsForPlan`. */
+  plan: PlanId;
 }
 
 export interface CapturedShot {
