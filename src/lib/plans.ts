@@ -2,6 +2,8 @@
 // Satu sumber kebenaran untuk harga, limit, dan fitur tiap plan.
 // Jangan hardcode harga/limit di tempat lain — import dari sini.
 
+import { FILM_COLLECTION, PREMIUM_FILM_COLLECTION, type FilmPreset } from "@/lib/films";
+
 export type PlanId = "KINCAI" | "KURINJI" | "GUNUNG_TUJUH" | "GUNUNG_KERINCI";
 
 export type RollFilmOption = 5 | 12 | 24 | 39 | "UNLIMITED" | "CUSTOM";
@@ -72,7 +74,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanConfig> = {
     watermark: false,
     rollFilmOptions: [5, 12, 24, 39, "UNLIMITED", "CUSTOM"],
     features: [
-      "Film Collection (8 preset LUT)",
+      "Film Collection (11 preset LUT eksklusif)",
       "Preview Filter",
       "AI Best Shot",
       "AI Blur Detection",
@@ -184,4 +186,24 @@ export function getDefaultRollFilmOption(plan: PlanId): number | null {
   const { presets } = getRollFilmPresets(plan);
   if (presets.includes(24)) return 24;
   return presets[0] ?? null;
+}
+
+/** Plan yang punya akses ke Film Collection premium (LUT eksklusif Fuji/Kodak). */
+const PREMIUM_FILM_PLANS: PlanId[] = ["GUNUNG_TUJUH", "GUNUNG_KERINCI"];
+
+export function hasPremiumFilmAccess(plan: PlanId): boolean {
+  return PREMIUM_FILM_PLANS.includes(plan);
+}
+
+/**
+ * Daftar film yang boleh dipakai guest di Kenang Camera untuk plan tertentu.
+ * Kincai/Kurinji hanya dapat 8 film "STANDARD" (SparkleStock). Gunung Tujuh
+ * ke atas dapat 8 STANDARD + Film Collection "PREMIUM" (eksklusif, Blueprint
+ * v2.1). Selalu pakai fungsi ini di UI — jangan filter tier film secara
+ * manual supaya tidak ada tempat yang lupa nge-gate saat plan baru muncul.
+ */
+export function getFilmsForPlan(plan: PlanId): FilmPreset[] {
+  return hasPremiumFilmAccess(plan)
+    ? [...FILM_COLLECTION, ...PREMIUM_FILM_COLLECTION]
+    : [...FILM_COLLECTION];
 }
