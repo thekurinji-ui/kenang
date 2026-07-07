@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { captureMetadataSchema } from "@/lib/validation";
 import { uploadObject } from "@/lib/r2";
+import { PLAN_LIMITS } from "@/lib/plans";
 
 // POST /api/v1/uploads — Volume 7 (Upload API)
 // Validation: JPEG/HEIC/WebP, max size configurable, auto compression
@@ -73,6 +74,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Full lock (Blueprint v2.1 — Masa Aktif): sekali lewat activeUntil, guest
+  // tidak bisa upload sama sekali lagi, terlepas dari status event-nya.
+  if (event.activeUntil && event.activeUntil.getTime() < Date.now()) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Masa aktif event ini sudah berakhir, roll film ditutup.",
+        code: "EVENT_EXPIRED",
+      },
+      { status: 403 }
+    );
+  }
+
   if (event.shotLimit !== null) {
     const totalForDevice = await prisma.photo.count({
       where: {
@@ -83,6 +97,26 @@ export async function POST(req: NextRequest) {
     if (totalForDevice >= event.shotLimit) {
       return NextResponse.json(
         { success: false, message: "Jatah foto sudah habis", code: "ROLL_FINISHED" },
+        { status: 403 }
+      );
+    }
+  }
+
+  // Enforcement (Blueprint v2.1): maxPhotos adalah kuota TOTAL event (semua
+  // tamu digabung), terpisah dari shotLimit per tamu di atas. maxVideos belum
+  // ditegakkan di sini karena fitur perekaman video belum ada di Kenang
+  // Camera (Photo model belum punya kolom mediaType) — tambahkan pengecekan
+  // ini begitu upload video diimplementasikan.
+  const maxPhotos = PLAN_LIMITS[event.plan].limits.maxPhotos;
+  if (maxPhotos !== null) {
+    const totalForEvent = await prisma.photo.count({ where: { eventId: event.id } });
+    if (totalForEvent >= maxPhotos) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Kuota foto event ini (paket ${PLAN_LIMITS[event.plan].name}) sudah penuh.`,
+          code: "PHOTO_LIMIT_REACHED",
+        },
         { status: 403 }
       );
     }
