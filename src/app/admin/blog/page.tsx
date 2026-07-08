@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Search, ExternalLink, Plus, Eye, EyeOff } from "lucide-react";
+import { Trash2, Search, ExternalLink, Plus, Eye, EyeOff, Pencil } from "lucide-react";
 
 interface AdminBlogPost {
   id: string;
@@ -169,6 +169,11 @@ export default function AdminBlogPage() {
                           </Button>
                         </a>
                       )}
+                      <Link href={`/admin/blog/${p.id}/edit`}>
+                        <Button variant="ghost" title="Edit artikel">
+                          <Pencil size={16} />
+                        </Button>
+                      </Link>
                       <Button
                         variant="ghost"
                         disabled={busyId === p.id}
@@ -195,4 +200,4 @@ export default function AdminBlogPage() {
       </Card>
     </div>
   );
-            }
+}
