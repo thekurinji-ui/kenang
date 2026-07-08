@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --font-poppins: "Poppins", sans-serif;
+  --font-fraunces: "Fraunces", serif;
   --font-inter: "Inter", sans-serif;
   --font-jetbrains: "JetBrains Mono", monospace;
 }
