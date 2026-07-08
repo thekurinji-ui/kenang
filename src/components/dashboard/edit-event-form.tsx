@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateEventSchema } from "@/lib/validation";
+import { EVENT_CATEGORIES, type EventCategoryId } from "@/lib/event-categories";
 import { getRollFilmPresets, PLAN_LIMITS, type PlanId } from "@/lib/plans";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ interface EditEventFormProps {
     location: string | null;
     eventDate: string | null;
     revealMode: "INSTANT" | "AFTER_EVENT_ENDS";
+    category: EventCategoryId;
     shotLimit: number | null;
     status: "DRAFT" | "LIVE" | "ENDED" | "ARCHIVED";
   };
@@ -55,6 +57,7 @@ export function EditEventForm({ eventId, plan, defaultValues }: EditEventFormPro
       location: defaultValues.location ?? undefined,
       eventDate: defaultValues.eventDate ?? undefined,
       revealMode: defaultValues.revealMode,
+      category: defaultValues.category,
       shotLimit: defaultValues.shotLimit,
       status: defaultValues.status,
     },
@@ -111,6 +114,22 @@ export function EditEventForm({ eventId, plan, defaultValues }: EditEventFormPro
             {...register("location")}
             error={errors.location?.message}
           />
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-body text-sm font-medium text-neutral-midnight">
+              Jenis Acara
+            </label>
+            <select
+              {...register("category")}
+              className="rounded-md border border-neutral-slate bg-neutral-white px-3.5 py-2.5 font-body text-sm text-neutral-midnight"
+            >
+              {EVENT_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <Input
             label="Tanggal Acara"
             type="date"
