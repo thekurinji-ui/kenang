@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { Button } from "@/components/ui/button";
+import { hasAIAccess } from "@/lib/plans";
 
 interface PageProps {
   params: { id: string };
@@ -59,8 +60,10 @@ export default async function EventGalleryPage({ params }: PageProps) {
         initialPhotos={photos.map((p) => ({
           ...p,
           uploadedAt: p.uploadedAt.toISOString(),
+          aiAnalyzedAt: p.aiAnalyzedAt ? p.aiAnalyzedAt.toISOString() : null,
         }))}
         initialAlbums={albums}
+        hasAIAccess={hasAIAccess(event.plan)}
       />
     </div>
   );
