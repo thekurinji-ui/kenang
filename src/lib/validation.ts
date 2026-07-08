@@ -36,6 +36,21 @@ export const createEventSchema = z.object({
   eventDate: z.string().optional(),
   location: z.string().max(200).optional(),
   revealMode: z.enum(["INSTANT", "AFTER_EVENT_ENDS"]).default("INSTANT"),
+  category: z
+    .enum([
+      "WEDDING",
+      "ENGAGEMENT",
+      "BIRTHDAY",
+      "GRADUATION",
+      "CORPORATE_GATHERING",
+      "REUNION",
+      "FESTIVAL_CONCERT",
+      "GRAND_OPENING",
+      "BABY_SHOWER",
+      "COMMUNITY_EVENT",
+      "OTHER",
+    ])
+    .default("OTHER"),
   shotLimit: z.number().int().positive().nullable().optional(),
 });
 
