@@ -55,3 +55,13 @@ export const createAlbumSchema = z.object({
 });
 
 export const updateAlbumSchema = createAlbumSchema.partial();
+
+export const createBlogPostSchema = z.object({
+  title: z.string().min(1, "Judul wajib diisi").max(150),
+  excerpt: z.string().max(300).optional(),
+  content: z.string().min(1, "Isi artikel wajib diisi"),
+  coverImage: z.string().url().optional().nullable(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+});
+
+export const updateBlogPostSchema = createBlogPostSchema.partial();
