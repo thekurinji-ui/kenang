@@ -72,12 +72,32 @@ const config: Config = {
           "60%": { transform: "scale(1.05) rotate(2deg)", opacity: "1" },
           "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
         },
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "film-develop": {
+          "0%": { filter: "blur(10px) brightness(0.3) saturate(0.4)" },
+          "35%": { filter: "blur(10px) brightness(0.3) saturate(0.4)" },
+          "75%": { filter: "blur(0px) brightness(1) saturate(1)" },
+          "100%": { filter: "blur(0px) brightness(1) saturate(1)" },
+        },
+        "film-label-reveal": {
+          "0%": { opacity: "0" },
+          "60%": { opacity: "0" },
+          "80%": { opacity: "1" },
+          "100%": { opacity: "1" },
+        },
       },
       animation: {
         "fade-in": "fade-in 200ms ease-out",
         "scale-tap": "scale-tap 200ms ease-out",
         bloom: "bloom 900ms cubic-bezier(0.16, 1, 0.3, 1)",
+        marquee: "marquee 30s linear infinite",
+        "film-develop": "film-develop 4s ease-in-out infinite",
+        "film-label-reveal": "film-label-reveal 4s ease-in-out infinite",
       },
+
     },
   },
   plugins: [require("@tailwindcss/typography")],
