@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, ChevronLeft, ChevronRight, Heart, Trash2, Images } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Heart, Trash2, Images, Star } from "lucide-react";
 import { cn, photoUrl } from "@/lib/utils";
 import type { Album, GalleryPhoto } from "./gallery-grid";
 
@@ -67,6 +67,17 @@ export function FullscreenViewer({
         >
           <ChevronRight size={20} />
         </button>
+      )}
+
+      {photo.aiIsBestShot && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 px-4 text-center">
+          <span className="rounded-full bg-crimson px-3 py-1 text-xs font-body font-semibold text-neutral-white flex items-center gap-1.5">
+            <Star size={12} className="fill-neutral-white" /> AI Best Shot
+          </span>
+          {photo.aiReason && (
+            <span className="font-body text-xs text-neutral-white/70 max-w-sm">{photo.aiReason}</span>
+          )}
+        </div>
       )}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
