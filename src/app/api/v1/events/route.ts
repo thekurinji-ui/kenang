@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
   // Business rule (Volume 2): satu QR hanya untuk satu event — dibuat
   // sekaligus di sini supaya host langsung punya link untuk dibagikan.
-  const { title, description, eventDate, location, revealMode, shotLimit } = parsed.data;
+  const { title, description, eventDate, location, revealMode, category, shotLimit } = parsed.data;
 
   // Roll Film fix (Blueprint v2.1): jumlah jepretan yang boleh dipilih host
   // terbatas sesuai plan-nya (Kincai cuma 5, Kurinji 5/12/24/39, dst).
@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
       eventDate: eventDate ? new Date(eventDate) : undefined,
       location,
       revealMode,
+      category,
       shotLimit: shotLimit ?? null,
       status: "DRAFT",
       // Snapshot plan + masa aktif event (lihat catatan di schema.prisma).
