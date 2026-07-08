@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { computeActiveUntil } from "../src/lib/plans";
 
 const prisma = new PrismaClient();
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
@@ -37,7 +38,7 @@ async function main() {
       qrCode: {
         create: {
           code: "pernikahan-demo",
-          url: "http://localhost:3000/e/pernikahan-demo",
+          url: `${appUrl}/e/pernikahan-demo`,
         },
       },
       analytics: { create: {} },
@@ -46,8 +47,8 @@ async function main() {
 
   console.log("Seed selesai.");
   console.log(`  Login host  : host@kenangkurinji.test / password123`);
-  console.log(`  Dashboard   : http://localhost:3000/dashboard`);
-  console.log(`  Guest camera: http://localhost:3000/e/${event.slug}`);
+  console.log(`  Dashboard   : ${appUrl}/dashboard`);
+  console.log(`  Guest camera: ${appUrl}/e/${event.slug}`);
 }
 
 main()
