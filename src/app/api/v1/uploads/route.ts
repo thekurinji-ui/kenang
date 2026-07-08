@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import fs from "fs";
+import path from "path";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { captureMetadataSchema } from "@/lib/validation";
@@ -179,7 +181,67 @@ export async function POST(req: NextRequest) {
   });
 }
 
-const WATERMARK_TEXT = "Kenang Kurinji";
+const LOGO_PATH = path.join(process.cwd(), "public", "logo.png");
+
+// Cached at module scope so we only read + inspect the logo file once per
+// server instance, not on every single photo upload.
+let logoCache: { base64: string; width: number; height: number } | null = null;
+
+async function getLogo() {
+  if (!logoCache) {
+    const buf = fs.readFileSync(LOGO_PATH);
+    const meta = await sharp(buf).metadata();
+    logoCache = {
+      base64: buf.toString("base64"),
+      width: meta.width ?? 1243,
+      height: meta.height ?? 632,
+    };
+  }
+  return logoCache;
+}
+
+async function applyWatermark(buffer: Buffer, width: number, height: number) {
+  const logo = await getLogo();
+  const logoRatio = logo.width / logo.height;
+
+  // Tile size scales with the photo so the pattern density stays consistent
+  // across different resolutions (matches the diagonal repeating look of
+  // stock-photo "sample" watermarks, just using our logo instead of text).
+  const tileSize = Math.max(140, Math.round(width * 0.24));
+  const logoWidth = Math.round(tileSize * 0.62);
+  const logoHeight = Math.round(logoWidth / logoRatio);
+  const offsetX = Math.round((tileSize - logoWidth) / 2);
+  const offsetY = Math.round((tileSize - logoHeight) / 2);
+
+  const svg = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern
+          id="watermark-tile"
+          width="${tileSize}"
+          height="${tileSize}"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(-30)"
+        >
+          <image
+            href="data:image/png;base64,${logo.base64}"
+            x="${offsetX}"
+            y="${offsetY}"
+            width="${logoWidth}"
+            height="${logoHeight}"
+            opacity="0.35"
+          />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#watermark-tile)" />
+    </svg>
+  `;
+
+  return sharp(buffer)
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}
 
 async function saveToR2(file: File, eventId: string, isFreePlan: boolean) {
   let buffer = Buffer.from(await file.arrayBuffer());
@@ -207,34 +269,4 @@ async function saveToR2(file: File, eventId: string, isFreePlan: boolean) {
   ]);
 
   return { storageKey, thumbnailKey, width, height };
-}
-
-async function applyWatermark(buffer: Buffer, width: number, height: number) {
-  const fontSize = Math.max(24, Math.round(width * 0.07));
-  const svg = `
-    <svg width="${width}" height="${height}">
-      <style>
-        .watermark {
-          fill: rgba(255,255,255,0.55);
-          font-size: ${fontSize}px;
-          font-family: sans-serif;
-          font-weight: 700;
-        }
-      </style>
-      <text
-        x="50%"
-        y="50%"
-        text-anchor="middle"
-        dominant-baseline="middle"
-        class="watermark"
-        stroke="rgba(0,0,0,0.4)"
-        stroke-width="1.5"
-      >${WATERMARK_TEXT}</text>
-    </svg>
-  `;
-
-  return sharp(buffer)
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .jpeg({ quality: 90 })
-    .toBuffer();
 }
