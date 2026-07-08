@@ -174,7 +174,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
 export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   {
     id: "fuji-eterna-250d-3510",
-    name: "Fuji Eterna 250D — Fuji 3510",
+    name: "Eterna Soft",
     inspiredBy: "Fuji Eterna 250D (print Fuji 3510)",
     description: "Warna sinematik lembut dengan highlight hangat khas print Fuji.",
     swatch: "#9E95A3",
@@ -186,7 +186,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "fuji-eterna-250d-2395",
-    name: "Fuji Eterna 250D — Kodak 2395",
+    name: "Eterna Neutral",
     inspiredBy: "Fuji Eterna 250D (print Kodak 2395)",
     description: "Karakter Eterna 250D dengan kontras print Kodak, lebih netral.",
     swatch: "#AF9E95",
@@ -198,7 +198,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "fuji-f125-2393",
-    name: "Fuji F125 — Kodak 2393",
+    name: "Daybreak",
     inspiredBy: "Fuji F125 (print Kodak 2393)",
     description: "Tone hangat seimbang, cocok untuk potret siang hari.",
     swatch: "#AA9182",
@@ -210,7 +210,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "fuji-f125-2395",
-    name: "Fuji F125 — Kodak 2395",
+    name: "Daybreak Soft",
     inspiredBy: "Fuji F125 (print Kodak 2395)",
     description: "Varian F125 dengan skin tone lebih lembut dan shadow lebih dalam.",
     swatch: "#AA958E",
@@ -222,7 +222,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "fuji-reala-500d",
-    name: "Fuji Reala 500D",
+    name: "Reala Blush",
     inspiredBy: "Fuji Reala 500D (print Kodak 2393)",
     description: "Saturasi natural dengan sedikit sentuhan merah muda pada skin tone.",
     swatch: "#AC9587",
@@ -234,7 +234,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "kodak-5218-2383",
-    name: "Kodak 5218 — Kodak 2383",
+    name: "Vision Classic",
     inspiredBy: "Kodak Vision3 500T 5218 (print Kodak 2383)",
     description: "Klasik sinematik Kodak, kontras kuat dengan shadow kehijauan.",
     swatch: "#AFA59A",
@@ -246,7 +246,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "kodak-5218-2395",
-    name: "Kodak 5218 — Kodak 2395",
+    name: "Vision Neutral",
     inspiredBy: "Kodak Vision3 500T 5218 (print Kodak 2395)",
     description: "Varian 5218 yang lebih netral dan lembut di highlight.",
     swatch: "#AEA19C",
@@ -258,7 +258,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "kodak-5295",
-    name: "Kodak 5295",
+    name: "Amber Glow",
     inspiredBy: "Kodak Vision2 500T 5295 (print Fuji 3510)",
     description: "Grain halus dengan warna hangat, cocok untuk suasana intim indoor.",
     swatch: "#AF9E90",
@@ -270,7 +270,7 @@ export const PREMIUM_FILM_COLLECTION: FilmPreset[] = [
   },
   {
     id: "filmstock-50",
-    name: "Filmstock 50",
+    name: "Clarity 50",
     inspiredBy: "Filmstock 50",
     description: "ISO rendah, warna bersih dan tajam dengan grain minimal.",
     swatch: "#D4C3A5",
