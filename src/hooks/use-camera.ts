@@ -78,6 +78,46 @@ export function useCamera({ eventCode, shotLimit }: UseCameraOptions) {
   const remaining = shotLimit === null ? null : Math.max(shotLimit - shotsTaken, 0);
   const isRollFinished = remaining !== null && remaining <= 0;
 
+  // Sinkronkan sisa jatah foto dari server saat kamera pertama dibuka.
+  // Tanpa ini, `shotsTaken` selalu mulai dari 0 tiap reload/scan ulang QR —
+  // guest yang sudah pernah motret 2x lalu keluar dan buka lagi bakal
+  // dikira masih punya jatah penuh, padahal server (uploads/route.ts) sudah
+  // menghitung device ini sebagai sudah pakai 2 jatah. Endpoint ini murni
+  // buat sinkronisasi tampilan; enforcement asli tetap di server saat upload.
+  useEffect(() => {
+    if (shotLimit === null) return; // unlimited, tidak ada yang perlu disinkronkan
+
+    let cancelled = false;
+    async function syncShotsTaken() {
+      try {
+        const deviceId = getOrCreateDeviceId();
+        const res = await fetch(
+          `/api/v1/guest-status?eventCode=${encodeURIComponent(eventCode)}&deviceId=${encodeURIComponent(deviceId)}`
+        );
+        const json = await res.json();
+        if (cancelled || !json.success) return;
+
+        const takenSoFar: number = json.data.shotsTaken;
+        setShotsTaken(takenSoFar);
+        if (shotLimit !== null && takenSoFar >= shotLimit) {
+          // Sudah habis dari sesi sebelumnya — langsung tampilkan layar
+          // "roll habis", jangan minta izin kamera lagi buat apa-apa.
+          setState("roll-finished");
+        }
+      } catch {
+        // Best-effort — kalau fetch gagal (mis. offline), fallback ke
+        // hitungan lokal (0) seperti sebelumnya. Server tetap jadi sumber
+        // kebenaran final saat upload, jadi tidak ada risiko over-quota.
+      }
+    }
+
+    syncShotsTaken();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventCode, shotLimit]);
+
   // Track connectivity — Volume 5 explicitly lists "Offline" as a state.
   useEffect(() => {
     setIsOnline(navigator.onLine);
