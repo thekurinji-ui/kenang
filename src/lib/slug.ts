@@ -26,3 +26,18 @@ export async function generateUniqueSlug(title: string): Promise<string> {
 
   return candidate;
 }
+
+/** Sama seperti generateUniqueSlug, tapi untuk artikel blog (tabel terpisah). */
+export async function generateUniqueBlogSlug(title: string): Promise<string> {
+  const base = slugify(title) || "artikel";
+  let candidate = base;
+  let attempt = 0;
+
+  while (await prisma.blogPost.findUnique({ where: { slug: candidate } })) {
+    attempt += 1;
+    candidate = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    if (attempt > 10) throw new Error("Gagal membuat slug artikel unik");
+  }
+
+  return candidate;
+}
