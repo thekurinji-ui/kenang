@@ -4,7 +4,23 @@ import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, ShieldOff, Trash2, Search } from "lucide-react";
+import { ShieldCheck, ShieldOff, Trash2, Search, PenSquare } from "lucide-react";
+
+type PlanId = "KINCAI" | "KURINJI" | "GUNUNG_TUJUH" | "GUNUNG_KERINCI";
+type SubStatus = "ACTIVE" | "PAST_DUE" | "CANCELED";
+
+const PLAN_OPTIONS: { value: PlanId; label: string }[] = [
+  { value: "KINCAI", label: "Kincai" },
+  { value: "KURINJI", label: "Kurinji" },
+  { value: "GUNUNG_TUJUH", label: "Gunung Tujuh" },
+  { value: "GUNUNG_KERINCI", label: "Gunung Kerinci" },
+];
+
+const STATUS_OPTIONS: { value: SubStatus; label: string }[] = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "PAST_DUE", label: "Past Due" },
+  { value: "CANCELED", label: "Canceled" },
+];
 
 interface AdminUser {
   id: string;
@@ -12,8 +28,14 @@ interface AdminUser {
   email: string;
   role: "OWNER" | "ADMIN" | "GUEST" | "VIEWER";
   createdAt: string;
-  subscription: { plan: string; status: string } | null;
+  subscription: { plan: PlanId; status: SubStatus; expiresAt: string | null } | null;
   _count: { events: number };
+}
+
+/** Format Date -> "YYYY-MM-DD" buat value <input type="date">. */
+function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
 }
 
 export default function AdminUsersPage() {
@@ -22,6 +44,10 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPlan, setEditPlan] = useState<PlanId>("KINCAI");
+  const [editStatus, setEditStatus] = useState<SubStatus>("ACTIVE");
+  const [editExpiresAt, setEditExpiresAt] = useState("");
 
   const load = useCallback(async (query: string) => {
     setLoading(true);
@@ -86,6 +112,42 @@ export default function AdminUsersPage() {
     }
   }
 
+  function startEdit(user: AdminUser) {
+    setEditingId(user.id);
+    setEditPlan(user.subscription?.plan ?? "KINCAI");
+    setEditStatus(user.subscription?.status ?? "ACTIVE");
+    setEditExpiresAt(toDateInputValue(user.subscription?.expiresAt));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveSubscription(user: AdminUser) {
+    setBusyId(user.id);
+    try {
+      const res = await fetch(`/api/v1/admin/users/${user.id}/subscription`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: editPlan,
+          status: editStatus,
+          expiresAt: editExpiresAt || null,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, subscription: json.data } : u))
+      );
+      setEditingId(null);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Gagal mengubah plan");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-6">
       <div>
@@ -135,7 +197,63 @@ export default function AdminUsersPage() {
                     <p className="text-neutral-midnight/50 text-xs">{u.email}</p>
                   </td>
                   <td className="p-4 text-neutral-midnight/70">
-                    {u.subscription?.plan ?? "KINCAI"}
+                    {editingId === u.id ? (
+                      <div className="flex flex-col gap-1.5 min-w-[160px]">
+                        <select
+                          value={editPlan}
+                          onChange={(e) => setEditPlan(e.target.value as PlanId)}
+                          className="rounded-md border border-neutral-slate bg-neutral-white px-2 py-1.5 text-xs font-body focus:outline-none focus:ring-2 focus:ring-crimson/40"
+                        >
+                          {PLAN_OPTIONS.map((p) => (
+                            <option key={p.value} value={p.value}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={editStatus}
+                          onChange={(e) => setEditStatus(e.target.value as SubStatus)}
+                          className="rounded-md border border-neutral-slate bg-neutral-white px-2 py-1.5 text-xs font-body focus:outline-none focus:ring-2 focus:ring-crimson/40"
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="date"
+                          value={editExpiresAt}
+                          onChange={(e) => setEditExpiresAt(e.target.value)}
+                          placeholder="Tanpa batas"
+                          title="Masa aktif — kosongkan untuk tanpa batas waktu"
+                          className="rounded-md border border-neutral-slate bg-neutral-white px-2 py-1.5 text-xs font-body focus:outline-none focus:ring-2 focus:ring-crimson/40"
+                        />
+                        <div className="flex gap-1.5">
+                          <Button
+                            variant="primary"
+                            className="text-xs px-2.5 py-1.5"
+                            disabled={busyId === u.id}
+                            onClick={() => saveSubscription(u)}
+                          >
+                            Simpan
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            className="text-xs px-2.5 py-1.5"
+                            disabled={busyId === u.id}
+                            onClick={cancelEdit}
+                          >
+                            Batal
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span>
+                        {PLAN_OPTIONS.find((p) => p.value === u.subscription?.plan)?.label ??
+                          "Kincai"}
+                      </span>
+                    )}
                   </td>
                   <td className="p-4 text-neutral-midnight/70">{u._count.events}</td>
                   <td className="p-4 text-neutral-midnight/70">
@@ -154,6 +272,14 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        disabled={busyId === u.id || editingId === u.id}
+                        onClick={() => startEdit(u)}
+                        title="Edit plan / subscription"
+                      >
+                        <PenSquare size={16} />
+                      </Button>
                       <Button
                         variant="ghost"
                         disabled={busyId === u.id}
@@ -180,4 +306,4 @@ export default function AdminUsersPage() {
       </Card>
     </div>
   );
-}
+          }
