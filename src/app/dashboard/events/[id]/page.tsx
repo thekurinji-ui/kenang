@@ -4,8 +4,11 @@ import QRCode from "qrcode";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QrCard } from "@/components/dashboard/qr-card";
+import { AiStoryCard } from "@/components/dashboard/ai-story-card";
+import { AiFeatureUpsellCard } from "@/components/dashboard/ai-feature-upsell-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { hasAIAccess } from "@/lib/plans";
 import { Camera, Users, HardDrive, Images, BarChart3, Settings } from "lucide-react";
 
 interface PageProps {
@@ -127,6 +130,16 @@ export default async function EventDetailPage({ params }: PageProps) {
               </div>
             </dl>
           </Card>
+
+          {hasAIAccess(event.plan) ? (
+            <AiStoryCard
+              eventId={event.id}
+              initialStory={event.aiStory}
+              initialGeneratedAt={event.aiStoryGeneratedAt?.toISOString() ?? null}
+            />
+          ) : (
+            <AiFeatureUpsellCard />
+          )}
         </div>
 
         {qrImage && event.qrCode && (
