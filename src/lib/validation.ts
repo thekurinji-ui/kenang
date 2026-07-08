@@ -49,6 +49,19 @@ export const adminCreateEventSchema = createEventSchema.extend({
   ownerEmail: z.string().email("Email client tidak valid"),
 });
 
+export const adminUpdateSubscriptionSchema = z.object({
+  plan: z.enum(["KINCAI", "KURINJI", "GUNUNG_TUJUH", "GUNUNG_KERINCI"]),
+  status: z.enum(["ACTIVE", "PAST_DUE", "CANCELED"]),
+  // Tanggal "YYYY-MM-DD" dari <input type="date">, string kosong, atau null
+  // semuanya dianggap "tanpa batas waktu" (dipakai untuk GUNUNG_KERINCI).
+  // Validasi format tanggal sesungguhnya dilakukan di route handler.
+  expiresAt: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
 export const createAlbumSchema = z.object({
   title: z.string().min(1, "Judul album wajib diisi").max(100),
   description: z.string().max(300).optional(),
