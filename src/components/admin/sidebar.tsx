@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LayoutDashboard, Users, CalendarDays, LogOut, ArrowLeftCircle } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Newspaper, LogOut, ArrowLeftCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/users", label: "Semua User", icon: Users },
   { href: "/admin/events", label: "Semua Event", icon: CalendarDays },
+  { href: "/admin/blog", label: "Blog", icon: Newspaper },
 ];
 
 export function AdminSidebar() {
