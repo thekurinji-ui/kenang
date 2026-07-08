@@ -52,6 +52,11 @@ export interface FilmPreset {
   grain: number; // 0–1 overlay opacity for film grain texture
   vignette: boolean;
   tier: FilmTier;
+  /** Foto preview asli (public/film-collection/*.jpg), hasil grading LUT
+   *  ini diterapkan ke satu foto referensi lewat
+   *  scripts/generate-standard-previews.py — dipakai di homepage (Film
+   *  Strip Memories), bukan di kamera live (itu pakai lutUrl + WebGL). */
+  previewImage?: string;
 }
 
 export const FILM_COLLECTION: FilmPreset[] = [
@@ -66,6 +71,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.12,
     vignette: true,
     tier: "STANDARD",
+    previewImage: "/film-collection/snap-01.jpg",
   },
   {
     id: "snap-02",
@@ -78,6 +84,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.14,
     vignette: true,
     tier: "STANDARD",
+    previewImage: "/film-collection/snap-02.jpg",
   },
   {
     id: "road-trip-01",
@@ -90,6 +97,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.08,
     vignette: false,
     tier: "STANDARD",
+    previewImage: "/film-collection/road-trip-01.jpg",
   },
   {
     id: "road-trip-02",
@@ -102,6 +110,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.09,
     vignette: false,
     tier: "STANDARD",
+    previewImage: "/film-collection/road-trip-02.jpg",
   },
   {
     id: "iso800-01",
@@ -114,6 +123,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.22,
     vignette: true,
     tier: "STANDARD",
+    previewImage: "/film-collection/iso800-01.jpg",
   },
   {
     id: "iso800-02",
@@ -126,6 +136,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.24,
     vignette: true,
     tier: "STANDARD",
+    previewImage: "/film-collection/iso800-02.jpg",
   },
   {
     id: "summer-01",
@@ -138,6 +149,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.06,
     vignette: false,
     tier: "STANDARD",
+    previewImage: "/film-collection/summer-01.jpg",
   },
   {
     id: "summer-02",
@@ -150,6 +162,7 @@ export const FILM_COLLECTION: FilmPreset[] = [
     grain: 0.07,
     vignette: true,
     tier: "STANDARD",
+    previewImage: "/film-collection/summer-02.jpg",
   },
 ];
 
