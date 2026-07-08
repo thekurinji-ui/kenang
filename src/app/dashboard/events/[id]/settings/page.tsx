@@ -44,6 +44,7 @@ export default async function EventSettingsPage({ params }: PageProps) {
           location: event.location,
           eventDate: event.eventDate ? event.eventDate.toISOString().slice(0, 10) : null,
           revealMode: event.revealMode,
+          category: event.category,
           shotLimit: event.shotLimit,
           status: event.status,
         }}
