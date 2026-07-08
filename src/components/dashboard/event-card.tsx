@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Camera, MapPin, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getEventCategoryLabel } from "@/lib/event-categories";
 
 interface EventCardProps {
   id: string;
@@ -9,6 +10,7 @@ interface EventCardProps {
   location: string | null;
   eventDate: string | null;
   status: "DRAFT" | "LIVE" | "ENDED" | "ARCHIVED";
+  category: string;
   totalPhotos: number;
   totalGuests: number;
 }
@@ -33,6 +35,7 @@ export function EventCard({
   location,
   eventDate,
   status,
+  category,
   totalPhotos,
   totalGuests,
 }: EventCardProps) {
@@ -52,6 +55,10 @@ export function EventCard({
             {STATUS_LABEL[status]}
           </span>
         </div>
+
+        <span className="w-fit rounded-full border border-neutral-slate px-2.5 py-0.5 font-body text-xs text-neutral-midnight/60">
+          {getEventCategoryLabel(category)}
+        </span>
 
         <div className="space-y-1 text-sm text-neutral-midnight/60 font-body">
           {location && (
