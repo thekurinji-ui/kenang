@@ -51,6 +51,41 @@ enum PaymentOrderStatus {
   CANCELED
 }
 
+enum FilmStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+// Kenang Kurinji v2.1 — Film Collection dinamis (Catatan Developer blueprint:
+// "Film Collection harus bersifat dinamis (database/folder), bukan
+// hardcoded"). `minPlan` menentukan gating: sebuah film cuma tersedia untuk
+// event yang plan snapshot-nya >= minPlan (lihat PLAN_RANK/isPlanAtLeast di
+// src/lib/plans.ts). Film dengan minPlan KINCAI = fitur dasar "Disposable
+// Camera", tersedia semua plan. Film dengan minPlan GUNUNG_TUJUH = "Film
+// Collection" eksklusif.
+model Film {
+  id           String     @id @default(uuid())
+  slug         String     @unique // dipakai sebagai Photo.filmType & kunci upsert seed
+  name         String
+  category     String? // mis. "Disposable Camera", "Film Collection"
+  swatch       String? // warna hex representatif untuk chip di film selector
+  thumbnailUrl String?    @map("thumbnail_url")
+  lutUrl       String     @map("lut_url") // path PNG strip LUT (public/luts/**)
+  lutSize      Int        @default(32) @map("lut_size")
+  grain        Float      @default(0)
+  vignette     Boolean    @default(false)
+  minPlan      Plan       @default(KINCAI) @map("min_plan")
+  status       FilmStatus @default(ACTIVE)
+  sortOrder    Int        @default(0) @map("sort_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([minPlan])
+  @@map("films")
+}
+
 model User {
   id                   String                @id @default(uuid())
   name                 String
@@ -65,6 +100,7 @@ model User {
   paymentOrders        PaymentOrder[]
   passwordResetTokens  PasswordResetToken[]
   accounts             Account[]
+  blogPosts            BlogPost[]
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
 
@@ -243,4 +279,30 @@ model Analytics {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("analytics")
+}
+
+// --- Blog (Volume 8: Kenang Blog) ---
+// Konten ditulis admin lewat dashboard admin (belum ada — menyusul di
+// langkah berikutnya). DRAFT tidak tampil di /blog publik sampai di-publish.
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id          String         @id @default(uuid())
+  title       String
+  slug        String         @unique
+  excerpt     String?
+  content     String         @db.Text // Markdown
+  coverImage  String?        @map("cover_image")
+  status      BlogPostStatus @default(DRAFT)
+  author      User           @relation(fields: [authorId], references: [id])
+  authorId    String         @map("author_id")
+  publishedAt DateTime?      @map("published_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@index([status, publishedAt])
+  @@map("blog_posts")
 }
