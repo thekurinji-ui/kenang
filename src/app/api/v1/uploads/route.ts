@@ -3,10 +3,12 @@ import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import { waitUntil } from "@vercel/functions";
 import { prisma } from "@/lib/prisma";
 import { captureMetadataSchema } from "@/lib/validation";
 import { uploadObject } from "@/lib/r2";
-import { PLAN_LIMITS } from "@/lib/plans";
+import { PLAN_LIMITS, hasAIAccess } from "@/lib/plans";
+import { runPhotoAiPipeline } from "@/lib/ai-pipeline";
 
 // POST /api/v1/uploads — Volume 7 (Upload API)
 // Validation: JPEG/HEIC/WebP, max size configurable, auto compression
@@ -174,6 +176,15 @@ export async function POST(req: NextRequest) {
       storageUsed: file.size,
     },
   });
+
+  // AI Features v3.0 (Best Shot + Smart Gallery): dijalankan asynchronous di
+  // background pakai waitUntil, JANGAN di-await — supaya guest tidak nunggu
+  // OpenAI selesai sebelum dapat respons upload. Hanya jalan untuk event di
+  // plan yang punya akses AI (Gunung Tujuh ke atas), biar tidak keluar biaya
+  // OpenAI percuma untuk event Kincai/Kurinji.
+  if (hasAIAccess(event.plan)) {
+    waitUntil(runPhotoAiPipeline(photo.id));
+  }
 
   return NextResponse.json({
     success: true,
