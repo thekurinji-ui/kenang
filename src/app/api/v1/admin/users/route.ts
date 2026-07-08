@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         email: true,
         role: true,
         createdAt: true,
-        subscription: { select: { plan: true, status: true } },
+        subscription: { select: { plan: true, status: true, expiresAt: true } },
         _count: { select: { events: true } },
       },
     }),
