@@ -19,8 +19,8 @@ const FAQS = [
     a: "Tergantung pengaturan host. Host bisa memilih batas jepretan tertentu (misal 5, 10, 24) atau membiarkannya unlimited.",
   },
   {
-    q: "Apa perbedaan plan Free, Plus, Pro, dan Business?",
-    a: "Free cocok untuk coba-coba di acara kecil dengan batas foto dan watermark. Plus dan Pro menghilangkan watermark, menambah kuota foto, dan membuka fitur seperti download galeri dan analytics lengkap. Business dirancang untuk vendor/EO yang mengelola banyak event sekaligus.",
+    q: "Apa perbedaan paket Kincai, Kurinji, Gunung Tujuh, dan Gunung Kerinci?",
+    a: "Kincai gratis untuk coba-coba di acara kecil dengan watermark dan kuota terbatas. Kurinji menghilangkan watermark, menambah kuota foto/video, dan membuka guest book digital. Gunung Tujuh membuka Film Collection premium, fitur AI (Best Shot, Blur Detection), analytics dashboard, dan multi QR. Gunung Kerinci dirancang untuk vendor/EO dengan event tanpa batas, white label, dan API access.",
   },
   {
     q: "Bisa unduh semua foto sekaligus?",
