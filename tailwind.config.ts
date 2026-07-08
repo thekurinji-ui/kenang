@@ -36,7 +36,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        heading: ["var(--font-poppins)", "sans-serif"],
+        heading: ["var(--font-fraunces)", "serif"],
         body: ["var(--font-inter)", "sans-serif"],
         mono: ["var(--font-jetbrains)", "monospace"],
       },
@@ -72,11 +72,16 @@ const config: Config = {
           "60%": { transform: "scale(1.05) rotate(2deg)", opacity: "1" },
           "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
         },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 200ms ease-out",
         "scale-tap": "scale-tap 200ms ease-out",
         bloom: "bloom 900ms cubic-bezier(0.16, 1, 0.3, 1)",
+        marquee: "marquee 28s linear infinite",
       },
     },
   },
