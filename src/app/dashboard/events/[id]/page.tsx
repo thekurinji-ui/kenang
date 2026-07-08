@@ -29,6 +29,16 @@ export default async function EventDetailPage({ params }: PageProps) {
       })
     : null;
 
+  // Formatted for display on the downloadable QR card (Volume 4 branding).
+  const eventDateLabel = event.eventDate
+    ? new Intl.DateTimeFormat("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(event.eventDate)
+    : null;
+
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -123,6 +133,8 @@ export default async function EventDetailPage({ params }: PageProps) {
           <QrCard
             eventId={event.id}
             eventTitle={event.title}
+            eventDateLabel={eventDateLabel}
+            eventLocation={event.location}
             initialImage={qrImage}
             initialUrl={event.qrCode.url}
           />
