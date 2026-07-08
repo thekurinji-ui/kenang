@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Inter, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const poppins = Poppins({
+const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
-  variable: "--font-poppins",
+  style: ["normal", "italic"],
+  variable: "--font-fraunces",
 });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
@@ -26,7 +27,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${poppins.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="id" className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
       </body>
