@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
-import sharp from "sharp";
 import { requireAdmin } from "@/lib/admin";
-import { uploadObject, publicUrl } from "@/lib/r2";
+import { prisma } from "@/lib/prisma";
+import { updateBlogPostSchema } from "@/lib/validation";
 
-// POST /api/v1/admin/blog/cover — upload cover image artikel blog.
-// Berdiri sendiri (tidak butuh postId) supaya admin bisa upload cover
-// SEBELUM artikel disimpan (dipakai di form tulis/edit artikel baru).
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
-const MAX_WIDTH = 1600;
-
-export async function POST(req: NextRequest) {
+// GET /api/v1/admin/blog/{id} — detail 1 artikel (dipakai form edit)
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const guard = await requireAdmin();
   if (!guard.ok) {
     return NextResponse.json(
@@ -20,39 +13,91 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const form = await req.formData().catch(() => null);
-  const file = form?.get("file");
-
-  if (!(file instanceof File)) {
+  const post = await prisma.blogPost.findUnique({
+    where: { id: params.id },
+    include: { author: { select: { id: true, name: true } } },
+  });
+  if (!post) {
     return NextResponse.json(
-      { success: false, message: "File cover wajib diisi", code: "VALIDATION_ERROR" },
+      { success: false, message: "Artikel tidak ditemukan", code: "POST_NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ success: true, data: post });
+}
+
+// PATCH /api/v1/admin/blog/{id} — edit artikel, atau toggle status publish/unpublish
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const guard = await requireAdmin();
+  if (!guard.ok) {
+    return NextResponse.json(
+      { success: false, message: guard.message, code: guard.code },
+      { status: guard.status }
+    );
+  }
+
+  const existing = await prisma.blogPost.findUnique({ where: { id: params.id } });
+  if (!existing) {
+    return NextResponse.json(
+      { success: false, message: "Artikel tidak ditemukan", code: "POST_NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  const body = await req.json().catch(() => null);
+  const parsed = updateBlogPostSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: parsed.error.errors[0]?.message ?? "Data tidak valid",
+        code: "VALIDATION_ERROR",
+      },
       { status: 422 }
     );
   }
 
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  const { status, ...rest } = parsed.data;
+
+  // publishedAt cuma di-set sekali, saat pertama kali status berubah jadi
+  // PUBLISHED — supaya urutan/tanggal tampil di /blog tidak berubah-ubah
+  // tiap kali admin unpublish lalu publish lagi.
+  const publishedAtUpdate =
+    status === "PUBLISHED" && !existing.publishedAt ? { publishedAt: new Date() } : {};
+
+  const post = await prisma.blogPost.update({
+    where: { id: params.id },
+    data: {
+      ...rest,
+      ...(status !== undefined ? { status } : {}),
+      ...publishedAtUpdate,
+    },
+    include: { author: { select: { id: true, name: true } } },
+  });
+
+  return NextResponse.json({ success: true, data: post });
+}
+
+// DELETE /api/v1/admin/blog/{id}
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const guard = await requireAdmin();
+  if (!guard.ok) {
     return NextResponse.json(
-      { success: false, message: "Format harus JPEG, PNG, atau WebP", code: "INVALID_FILE_TYPE" },
-      { status: 422 }
+      { success: false, message: guard.message, code: guard.code },
+      { status: guard.status }
     );
   }
 
-  if (file.size > MAX_SIZE_BYTES) {
+  const existing = await prisma.blogPost.findUnique({ where: { id: params.id } });
+  if (!existing) {
     return NextResponse.json(
-      { success: false, message: "Ukuran file maksimal 8MB", code: "FILE_TOO_LARGE" },
-      { status: 422 }
+      { success: false, message: "Artikel tidak ditemukan", code: "POST_NOT_FOUND" },
+      { status: 404 }
     );
   }
 
-  const rawBuffer = Buffer.from(await file.arrayBuffer());
-  const processedBuffer = await sharp(rawBuffer)
-    .rotate()
-    .resize({ width: MAX_WIDTH, withoutEnlargement: true })
-    .jpeg({ quality: 85 })
-    .toBuffer();
+  await prisma.blogPost.delete({ where: { id: params.id } });
 
-  const storageKey = `blog/covers/${Date.now()}_${randomUUID()}.jpg`;
-  await uploadObject(storageKey, processedBuffer, "image/jpeg");
-
-  return NextResponse.json({ success: true, data: { coverImage: publicUrl(storageKey) } });
+  return NextResponse.json({ success: true, message: "Artikel berhasil dihapus" });
 }
