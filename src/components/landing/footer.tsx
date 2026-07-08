@@ -46,11 +46,11 @@ function TikTokGlyph() {
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-neutral-slate bg-neutral-white px-6 pb-8 pt-14">
+    <footer className="border-t border-neutral-slate bg-neutral-white px-6 pb-8 pt-12 md:pt-14">
       <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-10 text-center sm:grid-cols-2 sm:gap-x-8 sm:gap-y-12 sm:text-left lg:grid-cols-4">
           {/* Brand */}
-          <div className="lg:col-span-1">
+          <div className="flex flex-col items-center sm:items-start">
             <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/logo.png"
@@ -69,7 +69,7 @@ export function LandingFooter() {
           </div>
 
           {/* Navigasi */}
-          <div>
+          <div className="flex flex-col items-center sm:items-start">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-neutral-midnight/40">
               Navigasi
             </p>
@@ -88,7 +88,7 @@ export function LandingFooter() {
           </div>
 
           {/* Kontak */}
-          <div>
+          <div className="flex flex-col items-center sm:items-start">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-neutral-midnight/40">
               Kontak
             </p>
@@ -139,7 +139,7 @@ export function LandingFooter() {
           </div>
 
           {/* Legal */}
-          <div>
+          <div className="flex flex-col items-center sm:items-start">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-neutral-midnight/40">
               Legal
             </p>
@@ -158,7 +158,7 @@ export function LandingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center gap-3 border-t border-neutral-slate pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div className="mt-10 flex flex-col items-center gap-3 border-t border-neutral-slate pt-6 text-center md:mt-12 sm:flex-row sm:justify-between sm:text-left">
           <p className="font-body text-xs text-neutral-midnight/50">
             © {new Date().getFullYear()} Kenang Kurinji. Scan. Jepret. Kenang.
           </p>
