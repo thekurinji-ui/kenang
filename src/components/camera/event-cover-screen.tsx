@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, MapPin, Tag } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import type { PublicEventInfo } from "@/types";
 import { getEventCategoryLabel } from "@/lib/event-categories";
 
@@ -46,12 +46,8 @@ export function EventCoverScreen({ event, onContinue }: EventCoverScreenProps) {
 
       <div className="relative z-10 flex h-full w-full flex-col justify-end px-8 pb-10 pt-16 text-neutral-white">
         <div className="space-y-3">
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-neutral-white/10 px-3 py-1 font-body text-xs font-medium text-neutral-white/90 backdrop-blur-sm">
-            <Tag size={12} className="shrink-0" />
-            {getEventCategoryLabel(event.category)}
-          </span>
           <p className="font-body text-xs uppercase tracking-widest text-neutral-white/60">
-            Kamu diundang ke
+            Kamu diundang ke {getEventCategoryLabel(event.category)}
           </p>
           <h1 className="font-heading text-3xl font-semibold leading-tight">
             {event.title}
