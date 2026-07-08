@@ -25,6 +25,9 @@ export interface PublicEventInfo {
   /** Plan pemilik event (snapshot saat event dibuat) — menentukan Film
    * Collection mana yang tersedia buat guest, lihat `getFilmsForPlan`. */
   plan: PlanId;
+  /** Jenis acara (mis. "WEDDING", "BIRTHDAY") — murni informatif, ditampilkan
+   * di cover screen. Lihat label-nya lewat `getEventCategoryLabel`. */
+  category: string;
 }
 
 export interface CapturedShot {
