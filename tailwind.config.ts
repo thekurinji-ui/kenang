@@ -37,7 +37,7 @@ const config: Config = {
       },
       fontFamily: {
         heading: ["var(--font-fraunces)", "serif"],
-        body: ["var(--font-inter)", "sans-serif"],
+        body: ["var(--font-poppins)", "sans-serif"],
         mono: ["var(--font-jetbrains)", "monospace"],
       },
       borderRadius: {
@@ -72,37 +72,15 @@ const config: Config = {
           "60%": { transform: "scale(1.05) rotate(2deg)", opacity: "1" },
           "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
         },
-        marquee: {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-50%)" },
-        },
-        "film-develop": {
-          "0%": { filter: "brightness(0.25) blur(6px) saturate(0.4)" },
-          "20%": { filter: "brightness(0.4) blur(4px) saturate(0.6)" },
-          "45%": { filter: "brightness(0.85) blur(1px) saturate(0.9)" },
-          "65%": { filter: "brightness(1) blur(0px) saturate(1.05)" },
-          "90%": { filter: "brightness(1) blur(0px) saturate(1.05)" },
-          "100%": { filter: "brightness(0.25) blur(6px) saturate(0.4)" },
-        },
-        "film-label-reveal": {
-          "0%": { opacity: "0", transform: "translateY(4px)" },
-          "40%": { opacity: "0", transform: "translateY(4px)" },
-          "55%": { opacity: "1", transform: "translateY(0)" },
-          "90%": { opacity: "1", transform: "translateY(0)" },
-          "100%": { opacity: "0", transform: "translateY(4px)" },
-        },
       },
       animation: {
         "fade-in": "fade-in 200ms ease-out",
         "scale-tap": "scale-tap 200ms ease-out",
         bloom: "bloom 900ms cubic-bezier(0.16, 1, 0.3, 1)",
-        marquee: "marquee 28s linear infinite",
-        "film-develop": "film-develop 4s ease-in-out infinite",
-        "film-label-reveal": "film-label-reveal 4s ease-in-out infinite",
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };
 
 export default config;
