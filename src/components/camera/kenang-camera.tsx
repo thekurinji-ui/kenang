@@ -77,7 +77,14 @@ export function KenangCamera({ event }: KenangCameraProps) {
   }
 
   if (state === "roll-finished") {
-    return <EndOfRoll shotsTaken={shotsTaken} />;
+    return (
+      <EndOfRoll
+        shotsTaken={shotsTaken}
+        eventSlug={event.slug}
+        revealMode={event.revealMode}
+        eventStatus={event.status}
+      />
+    );
   }
 
   return (
