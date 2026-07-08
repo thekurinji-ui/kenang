@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Heart, Search, FolderPlus, Images } from "lucide-react";
+import { Heart, Search, FolderPlus, Images, Sparkles, RefreshCw, Star } from "lucide-react";
 import { cn, photoUrl } from "@/lib/utils";
 import { FullscreenViewer } from "./fullscreen-viewer";
 import { AlbumManager } from "./album-manager";
@@ -15,6 +15,11 @@ export interface GalleryPhoto {
   uploadedAt: string;
   albumId: string | null;
   guest: { nickname: string | null } | null;
+  aiScore: number | null;
+  aiReason: string | null;
+  aiIsBestShot: boolean;
+  aiCategory: string | null;
+  aiAnalyzedAt: string | null;
 }
 
 export interface Album {
@@ -28,15 +33,44 @@ interface GalleryGridProps {
   eventId: string;
   initialPhotos: GalleryPhoto[];
   initialAlbums: Album[];
+  hasAIAccess: boolean;
 }
 
-export function GalleryGrid({ eventId, initialPhotos, initialAlbums }: GalleryGridProps) {
+export function GalleryGrid({ eventId, initialPhotos, initialAlbums, hasAIAccess }: GalleryGridProps) {
   const [photos, setPhotos] = useState(initialPhotos);
   const [albums, setAlbums] = useState(initialAlbums);
   const [filter, setFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [managingAlbums, setManagingAlbums] = useState(false);
+  const [processingAi, setProcessingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const pendingAiCount = photos.filter((p) => !p.aiAnalyzedAt).length;
+
+  const runAiProcessing = async () => {
+    setProcessingAi(true);
+    setAiError(null);
+    try {
+      const res = await fetch("/api/ai/best-shot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setAiError(json.message ?? "Gagal memproses AI.");
+        return;
+      }
+      // Data foto (skor/kategori/badge) berubah di server — reload halaman
+      // paling sederhana & aman daripada merge manual di client.
+      window.location.reload();
+    } catch {
+      setAiError("Gagal menghubungi server. Coba lagi.");
+    } finally {
+      setProcessingAi(false);
+    }
+  };
 
   const visible = useMemo(() => {
     let result = photos;
@@ -171,6 +205,33 @@ export function GalleryGrid({ eventId, initialPhotos, initialAlbums }: GalleryGr
         </div>
       </div>
 
+      {hasAIAccess && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-neutral-slate px-3 py-2">
+          <span className="font-body text-sm text-neutral-midnight/60 flex items-center gap-1.5">
+            <Sparkles size={14} className="text-crimson" />
+            {pendingAiCount > 0
+              ? `${pendingAiCount} foto belum dianalisis AI (Best Shot & kategori).`
+              : "Semua foto sudah dianalisis AI."}
+          </span>
+          {pendingAiCount > 0 && (
+            <button
+              onClick={runAiProcessing}
+              disabled={processingAi}
+              className="ml-auto rounded-md border border-crimson bg-crimson-50 px-3 py-1.5 text-sm font-body text-crimson flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {processingAi ? (
+                <>
+                  <RefreshCw size={13} className="animate-spin" /> Memproses...
+                </>
+              ) : (
+                "Proses AI"
+              )}
+            </button>
+          )}
+          {aiError && <span className="font-body text-xs text-red-600 w-full">{aiError}</span>}
+        </div>
+      )}
+
       {visible.length === 0 ? (
         <p className="font-body text-sm text-neutral-midnight/50 py-10 text-center">
           {query.trim() ? "Tidak ada foto yang cocok dengan pencarian." : "Belum ada foto di sini."}
@@ -193,6 +254,11 @@ export function GalleryGrid({ eventId, initialPhotos, initialAlbums }: GalleryGr
               {photo.isFavorite && (
                 <span className="absolute top-2 right-2 h-6 w-6 rounded-full bg-neutral-midnight/50 flex items-center justify-center">
                   <Heart size={12} className="fill-crimson text-crimson" />
+                </span>
+              )}
+              {photo.aiIsBestShot && (
+                <span className="absolute top-2 left-2 rounded-full bg-crimson px-2 py-0.5 text-[10px] font-body font-semibold text-neutral-white flex items-center gap-1">
+                  <Star size={10} className="fill-neutral-white" /> AI Best Shot
                 </span>
               )}
             </button>
