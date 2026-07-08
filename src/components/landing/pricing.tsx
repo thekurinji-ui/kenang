@@ -187,20 +187,20 @@ export function LandingPricing() {
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-4 lg:items-start">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
               className={cn(
                 "flex flex-col rounded-lg border p-6 shadow-soft",
                 plan.highlighted
-                  ? "border-crimson bg-crimson-50/40 shadow-medium"
+                  ? "border-crimson bg-crimson-50/40 shadow-medium lg:-my-3 lg:scale-[1.04] lg:p-7"
                   : "border-neutral-slate bg-neutral-white"
               )}
             >
               {plan.highlighted && (
-                <span className="mb-3 inline-flex w-fit items-center rounded-full bg-crimson px-3 py-1 font-body text-xs font-semibold text-neutral-white">
-                  Paling Populer
+                <span className="mb-3 inline-flex w-fit items-center gap-1 rounded-full bg-crimson px-3 py-1 font-body text-xs font-semibold text-neutral-white">
+                  ⭐ Pilihan Terfavorit
                 </span>
               )}
 
