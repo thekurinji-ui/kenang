@@ -41,6 +41,7 @@ export default async function EventsPage() {
               location={e.location}
               eventDate={e.eventDate?.toISOString() ?? null}
               status={e.status}
+              category={e.category}
               totalPhotos={e.analytics?.totalPhotos ?? 0}
               totalGuests={e.analytics?.totalGuests ?? 0}
             />
