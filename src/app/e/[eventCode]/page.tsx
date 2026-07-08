@@ -25,6 +25,7 @@ export default async function GuestCameraPage({ params }: PageProps) {
       shotLimit: true,
       activeUntil: true,
       plan: true,
+      category: true,
     },
   });
 
@@ -53,6 +54,7 @@ export default async function GuestCameraPage({ params }: PageProps) {
     revealMode: event.revealMode,
     shotLimit: event.shotLimit,
     plan: event.plan,
+    category: event.category,
   };
 
   return (
