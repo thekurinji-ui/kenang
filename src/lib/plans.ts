@@ -196,6 +196,16 @@ export function hasPremiumFilmAccess(plan: PlanId): boolean {
 }
 
 /**
+ * Plan yang punya akses ke fitur AI v3.0 (Best Shot, Story, Smart Gallery).
+ * Sama seperti Film Collection premium — sesuai daftar fitur Gunung Tujuh di
+ * atas ("AI Best Shot", "AI Blur Detection", dst), jadi satu tier yang sama
+ * dipakai untuk gating supaya tidak ada dua sumber kebenaran yang beda.
+ */
+export function hasAIAccess(plan: PlanId): boolean {
+  return PREMIUM_FILM_PLANS.includes(plan);
+}
+
+/**
  * Daftar film yang boleh dipakai guest di Kenang Camera untuk plan tertentu.
  * Kincai/Kurinji hanya dapat 8 film "STANDARD" (SparkleStock). Gunung Tujuh
  * ke atas dapat 8 STANDARD + Film Collection "PREMIUM" (eksklusif, Blueprint
