@@ -34,7 +34,18 @@ const VERTEX_SHADER_SRC = `
 `;
 
 const FRAGMENT_SHADER_SRC = `
+  // PENTING: "mediump" (default sebagian GPU mobile, terutama Adreno/Mali)
+  // hanya akurat untuk ~1024 nilai berbeda. LUT premium berukuran 64 butuh
+  // membedakan 64*64 = 4096 posisi texel horizontal — dengan mediump,
+  // perhitungan u0/u1 di bawah bisa "nyasar" ke tile LUT yang salah,
+  // terutama di area highlight/overexposed, menghasilkan pita warna yang
+  // salah total (lihat laporan bug: warna terbelah aneh di preview kamera).
+  // "highp" wajib dipakai supaya lookup texel presisi di semua ukuran LUT.
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
   precision mediump float;
+  #endif
   uniform sampler2D u_video;
   uniform sampler2D u_lut;
   uniform float u_lutSize;
