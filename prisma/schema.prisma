@@ -169,6 +169,11 @@ model Event {
   activeUntil  DateTime?   @map("active_until")
   deletedAt    DateTime?   @map("deleted_at") // soft delete
 
+  // AI Features v3.0 — Feature 2 (AI Story). Narasi disimpan supaya tidak
+  // perlu panggil OpenAI ulang tiap kali halaman dibuka (lihat AI Blueprint).
+  aiStory            String?   @map("ai_story")
+  aiStoryGeneratedAt DateTime? @map("ai_story_generated_at")
+
   guests       Guest[]
   photos       Photo[]
   albums       Album[]
@@ -212,7 +217,17 @@ model Photo {
   isFavorite    Boolean  @default(false) @map("is_favorite")
   uploadedAt    DateTime @default(now()) @map("uploaded_at")
 
+  // AI Features v3.0 (lihat AI Blueprint). Diisi oleh pipeline AI yang
+  // jalan asynchronous setelah upload — bisa null selama belum sempat/gagal
+  // dianalisis, foto tetap tampil normal di gallery tanpa fitur ini.
+  aiScore       Int?      @map("ai_score") // 0-100, Feature 1: AI Best Shot
+  aiReason      String?   @map("ai_reason") // alasan singkat dari AI
+  aiIsBestShot  Boolean   @default(false) @map("ai_is_best_shot")
+  aiCategory    String?   @map("ai_category") // Feature 3: AI Smart Gallery
+  aiAnalyzedAt  DateTime? @map("ai_analyzed_at")
+
   @@index([eventId])
+  @@index([eventId, aiScore])
   @@map("photos")
 }
 
@@ -224,6 +239,10 @@ model Album {
   description String?
   photos      Photo[]
 
+  // AI Features v3.0 — Feature 3 (AI Smart Gallery) auto-create satu Album
+  // per kategori (Ceremony, Reception, dst) memakai upsert, jadi title harus
+  // unik per event supaya tidak dobel.
+  @@unique([eventId, title])
   @@map("albums")
 }
 
