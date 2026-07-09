@@ -19,7 +19,9 @@ const FRAMES = FILM_COLLECTION; // 8 film STANDARD (snap/road-trip/iso800/summer
 
 export function LandingFilmStripMemories() {
   // Track digandakan sekali — animasi geser -50% jadi loop mulus.
-  const frames = [...FRAMES, ...FRAMES];
+  const topFrames = [...FRAMES, ...FRAMES];
+  const bottomFrames = [...FRAMES].reverse();
+  const bottomTrack = [...bottomFrames, ...bottomFrames];
 
   return (
     <section className="overflow-hidden bg-neutral-white py-16 md:py-20">
@@ -32,30 +34,64 @@ export function LandingFilmStripMemories() {
         </p>
       </div>
 
-      <div className="group/strip relative flex overflow-hidden">
-        <div className="flex w-max shrink-0 animate-marquee gap-4 px-4 [animation-duration:48s] group-hover/strip:[animation-play-state:paused]">
-          {frames.map((film, i) => (
-            <FilmFrame
-              key={`${film.id}-${i}`}
-              name={film.name}
-              image={film.previewImage ?? ""}
-            />
-          ))}
-        </div>
+      <div className="flex flex-col gap-3">
+        <FilmStripRow frames={topFrames} direction="right" />
+        <FilmStripRow frames={bottomFrames.length ? bottomTrack : topFrames} direction="left" />
       </div>
     </section>
   );
 }
 
+function FilmStripRow({
+  frames,
+  direction,
+}: {
+  frames: typeof FRAMES;
+  direction: "left" | "right";
+}) {
+  return (
+    <div className="group/strip flex flex-col gap-2 overflow-hidden bg-neutral-midnight py-2">
+      <Perforation />
+      <div className="flex overflow-hidden">
+        <div
+          className={`flex w-max shrink-0 ${
+            direction === "left" ? "animate-marquee-left" : "animate-marquee-right"
+          } [animation-duration:48s] group-hover/strip:[animation-play-state:paused]`}
+        >
+          {frames.map((film, i) => (
+            <FilmFrame key={`${film.id}-${i}`} name={film.name} image={film.previewImage ?? ""} />
+          ))}
+        </div>
+      </div>
+      <Perforation />
+    </div>
+  );
+}
+
+// Baris lubang sprocket ala roll film 35mm — dekoratif, cukup banyak
+// supaya selalu memenuhi lebar layar berapa pun ukurannya.
+function Perforation() {
+  return (
+    <div className="flex h-3 items-center gap-[6px] overflow-hidden px-2 md:h-3.5">
+      {Array.from({ length: 80 }).map((_, i) => (
+        <span
+          key={i}
+          className="h-[7px] w-[10px] shrink-0 rounded-[1.5px] bg-neutral-white md:h-2 md:w-3"
+        />
+      ))}
+    </div>
+  );
+}
+
 function FilmFrame({ name, image }: { name: string; image: string }) {
   return (
-    <div className="group/card relative h-48 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-neutral-midnight shadow-soft transition-transform duration-300 ease-out active:scale-105 md:h-56 md:w-40 md:hover:scale-105 md:hover:shadow-medium">
+    <div className="group/card relative h-48 w-36 shrink-0 cursor-pointer overflow-hidden border-x border-neutral-white/10 bg-neutral-midnight md:h-56 md:w-40">
       <Image
         src={image}
         alt={`Contoh jepretan dengan film ${name}`}
         fill
         sizes="(min-width: 768px) 160px, 144px"
-        className="object-cover"
+        className="object-cover transition-transform duration-300 ease-out active:scale-105 md:group-hover/card:scale-105"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-neutral-midnight/70 via-transparent to-transparent" />
 
