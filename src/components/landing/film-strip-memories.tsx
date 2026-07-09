@@ -55,7 +55,7 @@ function FilmStripRow({
       <div className="flex overflow-hidden">
         <div
           className={`flex w-max shrink-0 ${
-            direction === "left" ? "animate-marquee-left" : "animate-marquee-right"
+            direction === "left" ? "animate-marquee" : "animate-marquee-reverse"
           } [animation-duration:48s] group-hover/strip:[animation-play-state:paused]`}
         >
           {frames.map((film, i) => (
