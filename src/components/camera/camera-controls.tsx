@@ -3,6 +3,10 @@
 import { Zap, ZapOff, RefreshCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Kontrol atas/bawah sekarang duduk di letterbox hitam solid (bukan
+// ngambang di atas viewfinder), jadi chip bg + backdrop-blur lama sudah
+// tidak perlu — cukup ikon polos di atas hitam, persis Camera app iPhone.
+
 export function FlashToggle({
   value,
   onChange,
@@ -21,9 +25,9 @@ export function FlashToggle({
       type="button"
       aria-label={`Flash: ${value}`}
       onClick={cycle}
-      className="h-11 w-11 rounded-full bg-neutral-midnight/40 backdrop-blur-sm flex items-center justify-center text-neutral-white"
+      className="flex h-11 w-11 items-center justify-center text-neutral-white active:opacity-60"
     >
-      {value === "off" ? <ZapOff size={20} /> : <Zap size={20} className={value === "on" ? "text-gold" : ""} />}
+      {value === "off" ? <ZapOff size={22} /> : <Zap size={22} className={value === "on" ? "text-gold" : ""} />}
     </button>
   );
 }
@@ -34,9 +38,9 @@ export function CameraFlipButton({ onFlip }: { onFlip: () => void }) {
       type="button"
       aria-label="Balik kamera"
       onClick={onFlip}
-      className="h-11 w-11 rounded-full bg-neutral-midnight/40 backdrop-blur-sm flex items-center justify-center text-neutral-white"
+      className="flex h-11 w-11 items-center justify-center text-neutral-white active:opacity-60"
     >
-      <RefreshCw size={20} />
+      <RefreshCw size={22} />
     </button>
   );
 }
@@ -47,9 +51,9 @@ export function ExitButton({ onExit }: { onExit: () => void }) {
       type="button"
       aria-label="Keluar dari kamera"
       onClick={onExit}
-      className="h-11 w-11 rounded-full bg-neutral-midnight/40 backdrop-blur-sm flex items-center justify-center text-neutral-white"
+      className="flex h-11 w-11 items-center justify-center text-neutral-white active:opacity-60"
     >
-      <X size={20} />
+      <X size={22} />
     </button>
   );
 }
@@ -62,12 +66,7 @@ export function ShotCounter({
   remaining: number | null;
 }) {
   return (
-    <div
-      className={cn(
-        "px-3 py-1.5 rounded-md bg-neutral-midnight/40 backdrop-blur-sm",
-        "font-mono text-sm text-neutral-white tabular-nums"
-      )}
-    >
+    <div className="font-mono text-sm text-neutral-white tabular-nums">
       {remaining === null ? `${shotsTaken} / ∞` : `${remaining} tersisa`}
     </div>
   );
