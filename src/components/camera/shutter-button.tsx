@@ -16,17 +16,14 @@ export function ShutterButton({ onCapture, disabled }: ShutterButtonProps) {
       onClick={onCapture}
       className={cn(
         "relative h-20 w-20 rounded-full border-4 border-neutral-white",
-        "bg-neutral-white/20 backdrop-blur-sm active:animate-scale-tap",
+        "active:animate-scale-tap",
         "disabled:opacity-40 disabled:cursor-not-allowed",
-        "flex items-center justify-center transition-transform"
+        "flex items-center justify-center transition-opacity"
       )}
     >
-      <span
-        className={cn(
-          "h-[68px] w-[68px] rounded-full bg-neutral-white shadow-floating",
-          disabled ? "bg-neutral-slate" : "bg-crimson"
-        )}
-      />
+      {/* Selalu bulat putih polos — persis shutter Camera app iPhone,
+          gak lagi ganti warna sesuai state (dulu crimson/abu-abu). */}
+      <span className="h-[68px] w-[68px] rounded-full bg-neutral-white shadow-floating" />
     </button>
   );
 }
