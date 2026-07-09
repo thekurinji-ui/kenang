@@ -88,59 +88,62 @@ export function KenangCamera({ event }: KenangCameraProps) {
   }
 
   return (
-    <div className="relative h-full w-full bg-black overflow-hidden">
-      {/* Sumber frame kamera — disembunyikan secara visual, tapi tetap perlu
-          "playing" di DOM supaya video terus mengalir ke WebGL sebagai texture. */}
-      <video
-        ref={videoRef}
-        playsInline
-        muted
-        className="absolute inset-0 h-full w-full object-cover opacity-0 pointer-events-none"
-        aria-hidden="true"
-      />
-
-      {/* Viewfinder yang benar-benar dilihat guest: hasil LUT WebGL live. */}
-      <canvas
-        ref={previewCanvasRef}
-        className="h-full w-full object-cover"
-      />
-
-      {/* Screen-flash fallback (kamera depan / browser tanpa dukungan torch,
-          mis. iOS Safari) — layar putih terang berkedip sesaat pas jepret. */}
-      {isFlashFiring && (
-        <div className="absolute inset-0 z-40 bg-white pointer-events-none" />
-      )}
-
-      {!isLutReady && state === "ready" && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-          <div className="h-6 w-6 rounded-full border-2 border-neutral-white/30 border-t-neutral-white animate-spin" />
-        </div>
-      )}
-
-      {/* Top bar */}
-      <div className="absolute top-0 inset-x-0 flex items-center justify-between p-4 z-20">
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-black">
+      {/* Top bar — letterbox hitam solid ala iPhone Camera, bukan ngambang
+          di atas viewfinder. Kontrol duduk di sini. */}
+      <div className="relative z-20 flex shrink-0 items-center justify-between px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))]">
         <ExitButton onExit={() => history.back()} />
         <ShotCounter shotsTaken={shotsTaken} remaining={remaining} />
         <FlashToggle value={flash} onChange={setFlash} />
       </div>
 
-      {/* Bottom controls */}
-      <div className="absolute bottom-0 inset-x-0 z-20 pb-8 pt-4 bg-gradient-to-t from-black/70 to-transparent">
+      {/* Viewfinder — hanya bagian tengah ini yang menampilkan gambar,
+          persis seperti area preview di Camera app bawaan iPhone. */}
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+        {/* Sumber frame kamera — disembunyikan secara visual, tapi tetap perlu
+            "playing" di DOM supaya video terus mengalir ke WebGL sebagai texture. */}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className="absolute inset-0 h-full w-full object-cover opacity-0 pointer-events-none"
+          aria-hidden="true"
+        />
+
+        {/* Viewfinder yang benar-benar dilihat guest: hasil LUT WebGL live. */}
+        <canvas ref={previewCanvasRef} className="h-full w-full object-cover" />
+
+        {/* Screen-flash fallback (kamera depan / browser tanpa dukungan torch,
+            mis. iOS Safari) — layar putih terang berkedip sesaat pas jepret. */}
+        {isFlashFiring && (
+          <div className="absolute inset-0 z-40 bg-white pointer-events-none" />
+        )}
+
+        {!isLutReady && state === "ready" && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+            <div className="h-6 w-6 rounded-full border-2 border-neutral-white/30 border-t-neutral-white animate-spin" />
+          </div>
+        )}
+
+        {state === "loading" && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black">
+            <div className="h-8 w-8 rounded-full border-2 border-neutral-white/30 border-t-neutral-white animate-spin" />
+          </div>
+        )}
+
+        <UploadProgress state={state} errorMessage={lastError} onRetry={handleCapture} />
+      </div>
+
+      {/* Bottom bar — letterbox hitam solid, isinya film selector + shutter row,
+          persis susunan mode-selector & shutter di Camera app iPhone. */}
+      <div className="relative z-20 shrink-0 pb-[max(2rem,env(safe-area-inset-bottom))] pt-3">
         <FilmSelector selected={selectedFilm} onSelect={setSelectedFilm} films={availableFilms} />
-        <div className="flex items-center justify-center gap-10 mt-4">
+        <div className="mt-4 flex items-center justify-center gap-10">
           <div className="w-11" /> {/* spacer to balance the flip button */}
           <ShutterButton onCapture={handleCapture} disabled={state !== "ready"} />
           <CameraFlipButton onFlip={flipCamera} />
         </div>
       </div>
-
-      <UploadProgress state={state} errorMessage={lastError} onRetry={handleCapture} />
-
-      {state === "loading" && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black">
-          <div className="h-8 w-8 rounded-full border-2 border-neutral-white/30 border-t-neutral-white animate-spin" />
-        </div>
-      )}
     </div>
   );
 }
