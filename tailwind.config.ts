@@ -76,6 +76,10 @@ const config: Config = {
           "0%": { transform: "translateX(0%)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        "marquee-reverse": {
+          "0%": { transform: "translateX(-50%)" },
+          "100%": { transform: "translateX(0%)" },
+        },
         "film-develop": {
           "0%": { filter: "blur(10px) brightness(0.3) saturate(0.4)" },
           "35%": { filter: "blur(10px) brightness(0.3) saturate(0.4)" },
@@ -94,6 +98,7 @@ const config: Config = {
         "scale-tap": "scale-tap 200ms ease-out",
         bloom: "bloom 900ms cubic-bezier(0.16, 1, 0.3, 1)",
         marquee: "marquee 30s linear infinite",
+        "marquee-reverse": "marquee-reverse 30s linear infinite",
         "film-develop": "film-develop 4s ease-in-out infinite",
         "film-label-reveal": "film-label-reveal 4s ease-in-out infinite",
       },
