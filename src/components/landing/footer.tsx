@@ -15,6 +15,12 @@ const LEGAL_LINKS = [
   { label: "Kebijakan Privasi", href: "/privacy" },
   { label: "Syarat & Ketentuan", href: "/terms" },
   { label: "Kebijakan Cookie", href: "/cookies" },
+  { label: "Kebijakan Penggunaan AI", href: "/ai-policy" },
+  { label: "Persetujuan Penggunaan Foto", href: "/photo-consent" },
+  { label: "Refund & Pembatalan", href: "/refund-policy" },
+  { label: "Hak Cipta", href: "/copyright" },
+  { label: "Penghapusan Data", href: "/data-deletion" },
+  { label: "Kontak & Bantuan", href: "/help" },
 ];
 
 const SOCIALS = [
@@ -22,6 +28,11 @@ const SOCIALS = [
     label: "WhatsApp",
     href: "https://wa.me/6285161016094",
     icon: MessageCircle,
+  },
+  {
+    label: "Instagram @kenangkurinji",
+    href: "https://instagram.com/kenangkurinji",
+    icon: Instagram,
   },
   {
     label: "Instagram @thekurinji",
