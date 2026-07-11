@@ -11,6 +11,7 @@ interface QrCardProps {
   eventTitle: string;
   eventDateLabel?: string | null;
   eventLocation?: string | null;
+  coverImage?: string | null;
   initialImage: string;
   initialUrl: string;
 }
@@ -20,6 +21,7 @@ export function QrCard({
   eventTitle,
   eventDateLabel = null,
   eventLocation = null,
+  coverImage = null,
   initialImage,
   initialUrl,
 }: QrCardProps) {
@@ -38,6 +40,7 @@ export function QrCard({
         eventDateLabel,
         eventLocation,
         qrImageSrc: image,
+        coverImageSrc: coverImage,
       });
       const suffix = format === "a4" ? "poster-a4" : "story-ig";
       downloadBlob(blob, `kartu-qr-${suffix}-${slug}.png`);
