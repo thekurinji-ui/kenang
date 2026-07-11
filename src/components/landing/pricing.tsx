@@ -187,12 +187,16 @@ export function LandingPricing() {
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-4 lg:items-start">
+        <div
+          className="no-scrollbar mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4
+                     lg:grid lg:grid-cols-4 lg:items-start lg:gap-6 lg:overflow-visible lg:pb-0"
+        >
           {PLANS.map((plan) => (
             <div
               key={plan.id}
               className={cn(
-                "flex flex-col rounded-lg border p-6 shadow-soft",
+                "flex w-[85%] shrink-0 snap-center flex-col rounded-lg border p-6 shadow-soft",
+                "sm:w-[60%] lg:w-auto",
                 plan.highlighted
                   ? "border-crimson bg-crimson-50/40 shadow-medium lg:-my-3 lg:scale-[1.04] lg:p-7"
                   : "border-neutral-slate bg-neutral-white"
