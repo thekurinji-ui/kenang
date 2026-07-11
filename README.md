@@ -14,7 +14,8 @@ dashboard host, gallery & albums, analytics, guest management, hingga subscripti
 - ✅ Prisma schema lengkap sesuai Volume 6 (User, Event, Guest, Photo, Album, QRCode, Subscription, PaymentOrder, Analytics)
 - ✅ Auth.js (Credentials + Google opsional) — Volume 2 & 10
 - ✅ **Kenang Camera** (`/e/[eventCode]`) — fitur inti sesuai Volume 5:
-  - Permission handling, fullscreen viewfinder, one-tap capture
+  - Alur guest: Cover acara → **Isi Nama** (memicu `POST /join`, wajib) → Izin kamera →
+    fullscreen viewfinder, one-tap capture
   - 6 Film preset dengan karakter visual berbeda (Sunny Roll, Daylight Classic,
     Golden Portrait, Vivid Bloom, Silver Grain, Neon Night)
   - Flash toggle, flip kamera, shot counter, film selector
@@ -45,6 +46,16 @@ dashboard host, gallery & albums, analytics, guest management, hingga subscripti
 - ✅ **Forgot/Reset password**: request link lewat email (Resend), token sekali-pakai
   berlaku 1 jam (`/forgot-password`, `/reset-password`, `/api/v1/auth/forgot-password|reset-password`)
 - ✅ Design tokens (warna, tipografi, radius, shadow, motion) sesuai Volume 4
+- ✅ **Kuota plan anti race-condition**: `maxGuests`, `maxPhotos` (per event), dan
+  `shotLimit` (per tamu) ditegakkan lewat counter atomic (`Event.guestCount`,
+  `Event.photoCount`, `Guest.shotCount`) yang direservasi dalam satu database
+  transaction bareng insert-nya — bukan `count()` lalu `create()` terpisah —
+  supaya banyak tamu yang join/upload bersamaan tidak bisa kebobolan melewati
+  kuota paket. Lihat `src/app/api/v1/e/[eventCode]/join/route.ts` dan
+  `src/app/api/v1/uploads/route.ts`.
+- ✅ **Pricing card responsive**: di mobile & tablet jadi horizontal scroll
+  dengan snap (`src/components/landing/pricing.tsx`), balik ke grid 4 kolom
+  di desktop (`lg:` ke atas).
 
 ## Setup email (untuk fitur reset password)
 
@@ -91,8 +102,12 @@ dashboard host, gallery & albums, analytics, guest management, hingga subscripti
   aman untuk deploy ke Vercel/platform apapun. Pastikan env `R2_*` di `.env` terisi benar.
 - **Thumbnail**: sudah di-generate otomatis pakai `sharp` saat upload.
 - **Guest identity**: memakai `deviceId` (UUID di localStorage) sesuai prinsip
-  "Guest tidak wajib login". Pertimbangkan menambahkan compound unique index
-  `(eventId, deviceId)` di `schema.prisma` untuk guest lookup yang lebih rapi.
+  "Guest tidak wajib login". Sejak layar Isi Nama ditambahkan, `POST /join`
+  **selalu** dipanggil sebelum guest masuk kamera, jadi baris `Guest` sekarang
+  konsisten selalu ada — beda dari sebelumnya yang cuma dibuat kalau endpoint
+  `/join` dipanggil manual (sempat tidak terpakai sama sekali oleh frontend).
+  Pertimbangkan tetap menambahkan compound unique index `(eventId, deviceId)`
+  di `schema.prisma` untuk guest lookup yang lebih rapi.
 - **Kamera di iOS Safari**: butuh HTTPS (kecuali localhost) agar
   `getUserMedia` berfungsi — pastikan preview/production pakai HTTPS.
 
@@ -110,6 +125,7 @@ src/
 │   └── api/auth/[...nextauth]/        # Auth.js
 ├── components/
 │   ├── camera/                        # Semua komponen Kenang Camera
+│   │   └── guest-name-screen.tsx      # Layar isi nama tamu (memicu POST /join)
 │   ├── dashboard/                     # Sidebar, EventCard, QrCard, form
 │   ├── auth/                          # Form login & register
 │   └── ui/                            # Button, Input, Card
