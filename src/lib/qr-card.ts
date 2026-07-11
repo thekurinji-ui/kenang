@@ -14,7 +14,41 @@ export interface QrCardData {
   eventDateLabel: string | null; // e.g. "Sabtu, 14 Februari 2026" — already formatted
   eventLocation: string | null;
   qrImageSrc: string; // data URL from /api/v1/events/{id}/qr
+  /**
+   * Optional event cover photo (host-uploaded). Only used by the A4 poster,
+   * which lays its content out sideways (see OLIVE design notes below) —
+   * the photo gets rotated along with everything else so it reads upright
+   * once the printed page itself is turned 90°.
+   */
+  coverImageSrc?: string | null;
 }
+
+/**
+ * "Olive" design (A4 poster only, as of the 2026-07 redesign) — a landscape
+ * poster: left column has title/date/QR/tagline, right column has the
+ * cover photo + a "Misi Tamu" panel, footer strip runs across the bottom.
+ * Story format keeps the older upright portrait layout/colors further down
+ * this file (COLORS/MISSIONS/STEPS/drawCard).
+ */
+const OLIVE = {
+  bg: "#8A9A5B",
+  bgMuted: "#7C8B54",
+  cream: "#F7F4EA",
+  creamSoft: "rgba(247, 244, 234, 0.78)",
+  creamFaint: "rgba(247, 244, 234, 0.5)",
+  panel: "rgba(247, 244, 234, 0.90)",
+  textDark: "#2B2E26",
+  textDarkSoft: "rgba(43, 46, 38, 0.65)",
+  accent: "#4A5A2E",
+};
+
+const MISSIONS_A4 = [
+  "Ambil foto pasangan dari sudut favoritmu.",
+  "Tangkap tawa keluarga dan sahabat.",
+  "Abadikan detail dekorasi yang menarik perhatianmu.",
+  "Ambil satu foto yang menurutmu paling menggambarkan hari ini.",
+  "Ambil selfie dengan orang di sebelahmu.",
+];
 
 const COLORS = {
   bg: "#FAFAFA",
@@ -44,10 +78,98 @@ const STEPS = [
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = src;
   });
+}
+
+/** Draws `img` into the x/y/w/h box using object-fit: cover semantics. */
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number
+) {
+  const imgRatio = img.width / img.height;
+  const boxRatio = w / h;
+  let sx: number, sy: number, sw: number, sh: number;
+  if (imgRatio > boxRatio) {
+    sh = img.height;
+    sw = sh * boxRatio;
+    sx = (img.width - sw) / 2;
+    sy = 0;
+  } else {
+    sw = img.width;
+    sh = sw / boxRatio;
+    sx = 0;
+    sy = (img.height - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+/** Greedy word-wrap, measured with the given font. */
+function wrapForRotated(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  font: string,
+  maxAdvance: number
+): string[] {
+  ctx.font = font;
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxAdvance && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/** Dashed L-shaped corner brackets around a box — the "scan frame" look. */
+function drawCornerBrackets(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  bracketLen: number,
+  color: string,
+  lineWidth: number,
+  outset = 12
+) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = "round";
+  ctx.setLineDash([8, 6]);
+
+  const bx = x - outset;
+  const by = y - outset;
+  const bs = size + outset * 2;
+
+  const corners: Array<[number, number, 1 | -1, 1 | -1]> = [
+    [bx, by, 1, 1],
+    [bx + bs, by, -1, 1],
+    [bx, by + bs, 1, -1],
+    [bx + bs, by + bs, -1, -1],
+  ];
+  for (const [cx, cy, dx, dy] of corners) {
+    ctx.beginPath();
+    ctx.moveTo(cx + dx * bracketLen, cy);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(cx, cy + dy * bracketLen);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 async function ensureFonts() {
@@ -126,6 +248,164 @@ function drawDiamondDivider(ctx: CanvasRenderingContext2D, cx: number, y: number
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("\u2726", cx, y + 1);
+}
+
+interface DrawA4OliveOpts {
+  canvas: HTMLCanvasElement;
+  data: QrCardData;
+  qr: HTMLImageElement;
+  cover: HTMLImageElement | null;
+}
+
+/**
+ * Draws the redesigned A4 poster (olive/cream, "Wedding of ___" reference
+ * layout) — landscape, everything upright. Canvas is 1754x1240 (A4 landscape
+ * @ ~150dpi). Left column: title/date/QR/tagline. Right column: cover photo
+ * + "Misi Tamu" panel. Footer strip runs across the bottom.
+ */
+function drawA4OliveCard({ canvas, data, qr, cover }: DrawA4OliveOpts) {
+  const W = canvas.width; // 1754
+  const H = canvas.height; // 1240
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = OLIVE.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // ---- Left column: title / date / QR / tagline -----------------------
+  const leftX = 70;
+  const leftWidth = 650;
+  let y = 130;
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "600 14px Inter, sans-serif";
+  ctx.fillStyle = OLIVE.creamSoft;
+  ctx.fillText("W E D D I N G   O F", leftX, y);
+  y += 56;
+
+  ctx.font = "700 54px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  const titleLines = wrapForRotated(ctx, data.eventTitle.toUpperCase(), "700 54px Poppins, sans-serif", leftWidth);
+  for (const line of titleLines) {
+    ctx.fillText(line, leftX, y);
+    y += 60;
+  }
+  y += 10;
+
+  ctx.font = "600 16px Inter, sans-serif";
+  ctx.fillStyle = OLIVE.creamSoft;
+  if (data.eventDateLabel) {
+    ctx.fillText(data.eventDateLabel, leftX, y);
+    y += 24;
+  }
+  if (data.eventLocation) {
+    ctx.fillText(data.eventLocation, leftX, y);
+    y += 24;
+  }
+  y += 30;
+
+  ctx.font = "700 36px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  ctx.fillText("Scan. Jepret. Kenang.", leftX, y);
+  y += 50;
+
+  const qrSize = 400;
+  const qrX = leftX;
+  const qrY = y;
+  ctx.save();
+  ctx.fillStyle = "#FFFFFF";
+  roundRect(ctx, qrX, qrY, qrSize, qrSize, 20);
+  ctx.fill();
+  ctx.restore();
+  ctx.drawImage(qr, qrX + 24, qrY + 24, qrSize - 48, qrSize - 48);
+  drawCornerBrackets(ctx, qrX, qrY, qrSize, 40, OLIVE.cream, 3);
+
+  ctx.textAlign = "center";
+  ctx.font = "700 15px Inter, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  ctx.fillText("S C A N   M E", qrX + qrSize / 2, qrY - 22);
+  ctx.textAlign = "left";
+
+  // Wordmark, bottom-left.
+  ctx.font = "700 20px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  ctx.fillText("KENANG KURINJI", leftX, H - 60);
+
+  // ---- Right column: cover photo + missions panel ----------------------
+  const rightX = 780;
+  const rightWidth = W - rightX - 70; // ends at 1684
+  const photoX = rightX;
+  const photoY = 70;
+  const photoW = rightWidth;
+  const photoH = 610;
+
+  ctx.save();
+  roundRect(ctx, photoX, photoY, photoW, photoH, 24);
+  ctx.clip();
+  if (cover) {
+    drawImageCover(ctx, cover, photoX, photoY, photoW, photoH);
+    ctx.fillStyle = "rgba(74, 90, 46, 0.18)";
+    ctx.fillRect(photoX, photoY, photoW, photoH);
+  } else {
+    ctx.fillStyle = OLIVE.bgMuted;
+    ctx.fillRect(photoX, photoY, photoW, photoH);
+  }
+  ctx.restore();
+
+  const panelX = rightX;
+  const panelY = photoY + photoH + 40;
+  const panelW = rightWidth;
+  const panelH = H - panelY - 95;
+  ctx.save();
+  ctx.fillStyle = OLIVE.panel;
+  roundRect(ctx, panelX, panelY, panelW, panelH, 20);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.textAlign = "left";
+  ctx.font = "700 18px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.textDark;
+  ctx.fillText("MISI TAMU", panelX + 30, panelY + 34);
+
+  const colCount = MISSIONS_A4.length;
+  const colPad = 30;
+  const colAreaW = panelW - colPad * 2;
+  const colWidth = colAreaW / colCount;
+  MISSIONS_A4.forEach((mission, i) => {
+    const colX = panelX + colPad + colWidth * i;
+    const numberY = panelY + 80;
+
+    ctx.textAlign = "left";
+    ctx.font = "700 30px Poppins, sans-serif";
+    ctx.fillStyle = OLIVE.accent;
+    ctx.fillText(String(i + 1).padStart(2, "0"), colX, numberY);
+    const numW = ctx.measureText(String(i + 1).padStart(2, "0")).width;
+    ctx.font = "600 16px Inter, sans-serif";
+    ctx.fillText("\u2197", colX + numW + 6, numberY);
+
+    ctx.font = "400 13px Inter, sans-serif";
+    ctx.fillStyle = OLIVE.textDarkSoft;
+    const descLines = wrapForRotated(ctx, mission, "400 13px Inter, sans-serif", colWidth - 24);
+    let dy = numberY + 26;
+    for (const line of descLines) {
+      ctx.fillText(line, colX, dy);
+      dy += 18;
+    }
+  });
+
+  // ---- Footer strip, full width -----------------------------------------
+  ctx.textAlign = "center";
+  ctx.font = "700 15px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  ctx.fillText("Jumlah jepretan terbatas. Gunakan setiap foto dengan penuh makna.", W / 2, H - 58);
+
+  ctx.font = "400 13px Inter, sans-serif";
+  ctx.fillStyle = OLIVE.creamSoft;
+  ctx.fillText("Terima kasih telah menjadi bagian dari kenangan hari ini.", W / 2, H - 36);
+
+  ctx.font = "400 11px Inter, sans-serif";
+  ctx.fillStyle = OLIVE.creamFaint;
+  ctx.fillText("Dibuat dengan Kenang Kurinji \u00B7 KURINJI VIRTUAL NUSANTARA", W / 2, H - 16);
 }
 
 interface DrawOpts {
@@ -343,19 +623,24 @@ function drawCard({ canvas, format, data, logo, qr }: DrawOpts) {
 }
 
 export async function generateQrCardBlob(format: QrCardFormat, data: QrCardData): Promise<Blob> {
-  const [logo, qr] = await Promise.all([loadImage("/logo.png"), loadImage(data.qrImageSrc)]);
-  await ensureFonts();
-
   const canvas = document.createElement("canvas");
+
   if (format === "a4") {
-    canvas.width = 1240;
-    canvas.height = 1754;
+    const [qr, cover] = await Promise.all([
+      loadImage(data.qrImageSrc),
+      data.coverImageSrc ? loadImage(data.coverImageSrc).catch(() => null) : Promise.resolve(null),
+    ]);
+    await ensureFonts();
+    canvas.width = 1754;
+    canvas.height = 1240;
+    drawA4OliveCard({ canvas, data, qr, cover });
   } else {
+    const [logo, qr] = await Promise.all([loadImage("/logo.png"), loadImage(data.qrImageSrc)]);
+    await ensureFonts();
     canvas.width = 1080;
     canvas.height = 1920;
+    drawCard({ canvas, format, data, logo, qr });
   }
-
-  drawCard({ canvas, format, data, logo, qr });
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -372,4 +657,4 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-}
+                }
