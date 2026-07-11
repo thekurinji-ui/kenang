@@ -193,6 +193,11 @@ model Event {
   // melewati kuota. Lihat src/app/api/v1/e/[eventCode]/join/route.ts.
   guestCount   Int         @default(0) @map("guest_count")
 
+  // Counter atomic total foto yang sudah masuk ke event ini (semua tamu
+  // digabung). Dipakai untuk cek batas maxPhotos plan tanpa race condition —
+  // pola sama seperti guestCount di atas. Lihat src/app/api/v1/uploads/route.ts.
+  photoCount   Int         @default(0) @map("photo_count")
+
   // AI Features v3.0 — Feature 2 (AI Story). Narasi disimpan supaya tidak
   // perlu panggil OpenAI ulang tiap kali halaman dibuka (lihat AI Blueprint).
   aiStory            String?   @map("ai_story")
@@ -219,6 +224,12 @@ model Guest {
   isBanned  Boolean  @default(false) @map("is_banned")
   photos    Photo[]
   joinedAt  DateTime @default(now()) @map("joined_at")
+
+  // Counter atomic jumlah foto yang sudah diambil tamu ini di event tersebut.
+  // Dipakai untuk cek batas shotLimit (jatah roll film per tamu) tanpa race
+  // condition — pola sama seperti Event.guestCount/photoCount. Lihat
+  // src/app/api/v1/uploads/route.ts.
+  shotCount Int      @default(0) @map("shot_count")
 
   @@index([eventId])
   @@map("guests")
