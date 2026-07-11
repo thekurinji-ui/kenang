@@ -19,7 +19,7 @@ export const resetPasswordSchema = z.object({
 });
 
 export const joinEventSchema = z.object({
-  nickname: z.string().min(1).max(40).optional(),
+  nickname: z.string().min(1, "Nama wajib diisi").max(40, "Nama maksimal 40 karakter"),
   deviceId: z.string().min(8),
 });
 
