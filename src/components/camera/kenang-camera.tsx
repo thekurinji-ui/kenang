@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCamera } from "@/hooks/use-camera";
 import { getFilmsForPlan } from "@/lib/plans";
+import { getStoredNickname } from "@/lib/utils";
 import { ShutterButton } from "./shutter-button";
 import { FilmSelector } from "./film-selector";
 import { FlashToggle, CameraFlipButton, ExitButton, ShotCounter } from "./camera-controls";
 import { EventCoverScreen } from "./event-cover-screen";
+import { GuestNameScreen } from "./guest-name-screen";
 import { PermissionScreen } from "./permission-screen";
 import { EndOfRoll } from "./end-of-roll";
 import { UploadProgress } from "./upload-progress";
@@ -48,6 +50,13 @@ export function KenangCamera({ event }: KenangCameraProps) {
   // state machine di useCamera.
   const [showCover, setShowCover] = useState(true);
 
+  // Guest wajib isi nama sekali sebelum masuk kamera (dan itu jugalah yang
+  // memicu POST /join di baliknya — lihat komentar di GuestNameScreen).
+  // Kalau device ini sudah pernah join event ini sebelumnya (nickname
+  // kesimpan di localStorage), lewati layar ini supaya guest yang keluar-
+  // masuk halaman nggak ditanya nama berkali-kali.
+  const [hasJoined, setHasJoined] = useState(() => getStoredNickname(event.slug) !== null);
+
   // Auto-return to "ready" after a success/failed toast so the guest can
   // keep shooting without extra taps.
   useEffect(() => {
@@ -64,6 +73,16 @@ export function KenangCamera({ event }: KenangCameraProps) {
 
   if (showCover) {
     return <EventCoverScreen event={event} onContinue={() => setShowCover(false)} />;
+  }
+
+  if (!hasJoined) {
+    return (
+      <GuestNameScreen
+        eventTitle={event.title}
+        eventSlug={event.slug}
+        onJoined={() => setHasJoined(true)}
+      />
+    );
   }
 
   if (state === "permission") {
