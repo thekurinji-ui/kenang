@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { joinEventSchema } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plans";
 
+// Sentinel error dilempar dari dalam transaction saat kuota guest sudah
+// penuh, supaya bisa dibedakan dari error database lain di catch block.
+class GuestLimitReachedError extends Error {}
+
 // POST /api/v1/e/{eventCode}/join — Volume 7 (Guest API)
 export async function POST(
   req: NextRequest,
@@ -61,11 +65,42 @@ export async function POST(
   // Enforcement (Blueprint v2.1): maxGuests hanya berlaku untuk tamu BARU —
   // tamu yang sudah pernah join (device sama) tetap boleh masuk lagi walau
   // kuota sudah penuh, supaya guest yang sudah difoto tidak mendadak terkunci.
-  if (!existing) {
+  //
+  // PENTING: cek kuota dan insert tamu digabung jadi SATU transaction, dan
+  // reservasi kuota dilakukan lewat updateMany({ guestCount: { lt: maxGuests } })
+  // — bukan count() lalu create() terpisah. Kalau dipisah, banyak guest yang
+  // join bersamaan (mis. semua tamu scan QR di detik yang sama) bisa
+  // sama-sama lolos pengecekan sebelum salah satu selesai insert, sehingga
+  // guestCount bisa kebobolan melewati maxGuests. UPDATE ... WHERE di
+  // Postgres itu atomic per baris, jadi cara ini aman dari race condition
+  // walau ada ratusan request bersamaan.
+  let guest;
+  if (existing) {
+    guest = await prisma.guest.update({ where: { id: existing.id }, data: { nickname } });
+  } else {
     const maxGuests = PLAN_LIMITS[event.plan].limits.maxGuests;
-    if (maxGuests !== null) {
-      const guestCount = await prisma.guest.count({ where: { eventId: event.id } });
-      if (guestCount >= maxGuests) {
+
+    try {
+      guest = await prisma.$transaction(async (tx) => {
+        if (maxGuests !== null) {
+          const reserved = await tx.event.updateMany({
+            where: { id: event.id, guestCount: { lt: maxGuests } },
+            data: { guestCount: { increment: 1 } },
+          });
+          if (reserved.count === 0) {
+            throw new GuestLimitReachedError();
+          }
+        } else {
+          await tx.event.update({
+            where: { id: event.id },
+            data: { guestCount: { increment: 1 } },
+          });
+        }
+
+        return tx.guest.create({ data: { eventId: event.id, deviceId, nickname } });
+      });
+    } catch (err) {
+      if (err instanceof GuestLimitReachedError) {
         return NextResponse.json(
           {
             success: false,
@@ -75,12 +110,9 @@ export async function POST(
           { status: 403 }
         );
       }
+      throw err;
     }
   }
-
-  const guest = existing
-    ? await prisma.guest.update({ where: { id: existing.id }, data: { nickname } })
-    : await prisma.guest.create({ data: { eventId: event.id, deviceId, nickname } });
 
   if (guest.isBanned) {
     return NextResponse.json(
