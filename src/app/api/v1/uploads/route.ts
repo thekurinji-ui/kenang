@@ -20,6 +20,11 @@ import { runPhotoAiPipeline } from "@/lib/ai-pipeline";
 const ALLOWED_TYPES = ["image/jpeg", "image/webp", "image/heic"];
 const MAX_SIZE_BYTES = 12 * 1024 * 1024; // 12MB safety ceiling
 
+// Sentinel errors dilempar dari dalam transaction saat kuota sudah penuh,
+// supaya bisa dibedakan dari error database lain di catch block.
+class RollFinishedError extends Error {}
+class PhotoLimitReachedError extends Error {}
+
 export async function POST(req: NextRequest) {
   const form = await req.formData();
   const file = form.get("file");
@@ -91,19 +96,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (event.shotLimit !== null) {
-    const totalForDevice = await prisma.photo.count({
-      where: {
-        eventId: event.id,
-        guest: { deviceId: metaParsed.data.deviceId },
-      },
-    });
-    if (totalForDevice >= event.shotLimit) {
-      return NextResponse.json(
-        { success: false, message: "Jatah foto sudah habis", code: "ROLL_FINISHED" },
-        { status: 403 }
-      );
-    }
+  // Cek murah dulu pakai angka yang sudah nempel di row event/guest (tanpa
+  // query count() terpisah) — supaya kalau jelas-jelas sudah penuh, kita
+  // nggak buang waktu/biaya proses & upload file ke R2 dulu. Ini BUKAN
+  // penjagaan utama (masih bisa race di request yang nyaris bersamaan),
+  // makanya nanti tetap direservasi ulang secara atomic tepat sebelum
+  // Photo dibuat di bawah.
+  const guest = await prisma.guest.findFirst({
+    where: { eventId: event.id, deviceId: metaParsed.data.deviceId },
+  });
+
+  if (guest?.isBanned) {
+    return NextResponse.json(
+      { success: false, message: "Kamu tidak dapat mengunggah foto di event ini", code: "GUEST_BANNED" },
+      { status: 403 }
+    );
+  }
+
+  if (event.shotLimit !== null && guest && guest.shotCount >= event.shotLimit) {
+    return NextResponse.json(
+      { success: false, message: "Jatah foto sudah habis", code: "ROLL_FINISHED" },
+      { status: 403 }
+    );
   }
 
   // Enforcement (Blueprint v2.1): maxPhotos adalah kuota TOTAL event (semua
@@ -112,27 +126,13 @@ export async function POST(req: NextRequest) {
   // Camera (Photo model belum punya kolom mediaType) — tambahkan pengecekan
   // ini begitu upload video diimplementasikan.
   const maxPhotos = PLAN_LIMITS[event.plan].limits.maxPhotos;
-  if (maxPhotos !== null) {
-    const totalForEvent = await prisma.photo.count({ where: { eventId: event.id } });
-    if (totalForEvent >= maxPhotos) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Kuota foto event ini (paket ${PLAN_LIMITS[event.plan].name}) sudah penuh.`,
-          code: "PHOTO_LIMIT_REACHED",
-        },
-        { status: 403 }
-      );
-    }
-  }
-
-  const guest = await prisma.guest.findFirst({
-    where: { eventId: event.id, deviceId: metaParsed.data.deviceId },
-  });
-
-  if (guest?.isBanned) {
+  if (maxPhotos !== null && event.photoCount >= maxPhotos) {
     return NextResponse.json(
-      { success: false, message: "Kamu tidak dapat mengunggah foto di event ini", code: "GUEST_BANNED" },
+      {
+        success: false,
+        message: `Kuota foto event ini (paket ${PLAN_LIMITS[event.plan].name}) sudah penuh.`,
+        code: "PHOTO_LIMIT_REACHED",
+      },
       { status: 403 }
     );
   }
@@ -153,18 +153,68 @@ export async function POST(req: NextRequest) {
     isFreePlan
   );
 
-  const photo = await prisma.photo.create({
-    data: {
-      eventId: event.id,
-      guestId: guest?.id,
-      storageKey,
-      thumbnailKey,
-      width,
-      height,
-      filmType: metaParsed.data.filmType,
-      frameType: metaParsed.data.orientation,
-    },
-  });
+  // PENTING: reservasi kuota (photoCount event & shotCount guest) dan insert
+  // Photo digabung jadi SATU transaction, pakai updateMany({ ...Count: { lt } })
+  // — bukan count() lalu create() terpisah. Kalau dipisah, banyak upload yang
+  // hampir bersamaan bisa sama-sama lolos pengecekan di atas sebelum salah
+  // satu selesai insert, sehingga kuota bisa kebobolan. UPDATE ... WHERE di
+  // Postgres itu atomic per baris, jadi ini aman dari race condition walau
+  // ada banyak tamu upload berbarengan.
+  let photo;
+  try {
+    photo = await prisma.$transaction(async (tx) => {
+      if (maxPhotos !== null) {
+        const reserved = await tx.event.updateMany({
+          where: { id: event.id, photoCount: { lt: maxPhotos } },
+          data: { photoCount: { increment: 1 } },
+        });
+        if (reserved.count === 0) throw new PhotoLimitReachedError();
+      } else {
+        await tx.event.update({ where: { id: event.id }, data: { photoCount: { increment: 1 } } });
+      }
+
+      if (event.shotLimit !== null && guest) {
+        const reservedGuest = await tx.guest.updateMany({
+          where: { id: guest.id, shotCount: { lt: event.shotLimit } },
+          data: { shotCount: { increment: 1 } },
+        });
+        if (reservedGuest.count === 0) throw new RollFinishedError();
+      } else if (guest) {
+        await tx.guest.update({ where: { id: guest.id }, data: { shotCount: { increment: 1 } } });
+      }
+
+      return tx.photo.create({
+        data: {
+          eventId: event.id,
+          guestId: guest?.id,
+          storageKey,
+          thumbnailKey,
+          width,
+          height,
+          filmType: metaParsed.data.filmType,
+          frameType: metaParsed.data.orientation,
+        },
+      });
+    });
+  } catch (err) {
+    if (err instanceof PhotoLimitReachedError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Kuota foto event ini (paket ${PLAN_LIMITS[event.plan].name}) sudah penuh.`,
+          code: "PHOTO_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
+    if (err instanceof RollFinishedError) {
+      return NextResponse.json(
+        { success: false, message: "Jatah foto sudah habis", code: "ROLL_FINISHED" },
+        { status: 403 }
+      );
+    }
+    throw err;
+  }
 
   await prisma.analytics.upsert({
     where: { eventId: event.id },
