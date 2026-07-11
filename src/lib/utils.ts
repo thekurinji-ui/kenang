@@ -24,3 +24,15 @@ export function getOrCreateDeviceId(): string {
   }
   return id;
 }
+
+/** Nama yang sudah diisi tamu untuk event tertentu, disimpan per-eventCode
+ *  (bukan satu key global) supaya tamu yang sama tetap ditanya nama lagi
+ *  kalau ikut event lain — tapi tidak ditanya ulang kalau buka event yang
+ *  sama dua kali (mis. sempat keluar/reload halaman). */
+export function getStoredNickname(eventCode: string): string | null {
+  return localStorage.getItem(`kenang_nickname:${eventCode}`);
+}
+
+export function setStoredNickname(eventCode: string, nickname: string): void {
+  localStorage.setItem(`kenang_nickname:${eventCode}`, nickname);
+}
