@@ -148,6 +148,7 @@ export default async function EventDetailPage({ params }: PageProps) {
             eventTitle={event.title}
             eventDateLabel={eventDateLabel}
             eventLocation={event.location}
+            coverImage={event.coverImage}
             initialImage={qrImage}
             initialUrl={event.qrCode.url}
           />
