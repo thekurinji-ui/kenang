@@ -186,6 +186,13 @@ model Event {
   activeUntil  DateTime?   @map("active_until")
   deletedAt    DateTime?   @map("deleted_at") // soft delete
 
+  // Counter atomic jumlah tamu yang sudah join (Volume 7 Guest API). Dipakai
+  // untuk cek batas maxGuests plan tanpa race condition: increment dilakukan
+  // via satu UPDATE ... WHERE guest_count < maxGuests, bukan count()+create()
+  // terpisah, supaya join bersamaan dalam jumlah besar tidak bisa kebobolan
+  // melewati kuota. Lihat src/app/api/v1/e/[eventCode]/join/route.ts.
+  guestCount   Int         @default(0) @map("guest_count")
+
   // AI Features v3.0 — Feature 2 (AI Story). Narasi disimpan supaya tidak
   // perlu panggil OpenAI ulang tiap kali halaman dibuka (lihat AI Blueprint).
   aiStory            String?   @map("ai_story")
