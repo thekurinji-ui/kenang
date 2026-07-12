@@ -33,6 +33,7 @@ export interface QrCardData {
 const OLIVE = {
   bg: "#8A9A5B",
   bgMuted: "#7C8B54",
+  bgLight: "#C5CAA8",
   cream: "#F7F4EA",
   creamSoft: "rgba(247, 244, 234, 0.78)",
   creamFaint: "rgba(247, 244, 234, 0.5)",
@@ -172,14 +173,33 @@ function drawCornerBrackets(
   ctx.restore();
 }
 
+const GOOGLE_FONTS_HREF =
+  "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap";
+
+/**
+ * next/font/google (used elsewhere in the app) registers fonts under a
+ * scoped, hashed font-family name applied via CSS variables — canvas
+ * `ctx.font` references the literal family name ("Poppins", "Fraunces", ...)
+ * instead, which next/font doesn't expose. So we load the same families
+ * again here, the plain way, purely for canvas's benefit.
+ */
 async function ensureFonts() {
   try {
+    if (!document.querySelector(`link[href="${GOOGLE_FONTS_HREF}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = GOOGLE_FONTS_HREF;
+      document.head.appendChild(link);
+    }
     await Promise.all([
       document.fonts.load("700 40px Poppins"),
       document.fonts.load("600 24px Poppins"),
       document.fonts.load("600 16px Poppins"),
       document.fonts.load("400 16px Inter"),
       document.fonts.load("600 16px Inter"),
+      document.fonts.load("italic 500 32px Fraunces"),
+      document.fonts.load("700 84px Fraunces"),
+      document.fonts.load("700 34px Fraunces"),
       document.fonts.ready,
     ]);
   } catch {
@@ -253,17 +273,38 @@ function drawDiamondDivider(ctx: CanvasRenderingContext2D, cx: number, y: number
 interface DrawA4OliveOpts {
   canvas: HTMLCanvasElement;
   data: QrCardData;
+  logo: HTMLImageElement;
   qr: HTMLImageElement;
   cover: HTMLImageElement | null;
 }
 
+/** A single "SCAN ME" label, optionally rotated, used around the QR frame. */
+function drawScanMeLabel(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  rotationDeg: number,
+  color: string
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rotationDeg * Math.PI) / 180);
+  ctx.font = "700 15px Inter, sans-serif";
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("S C A N   M E", 0, 0);
+  ctx.restore();
+}
+
 /**
  * Draws the redesigned A4 poster (olive/cream, "Wedding of ___" reference
- * layout) — landscape, everything upright. Canvas is 1754x1240 (A4 landscape
- * @ ~150dpi). Left column: title/date/QR/tagline. Right column: cover photo
- * + "Misi Tamu" panel. Footer strip runs across the bottom.
+ * layout) — landscape, 1754x1240 (A4 landscape @ ~150dpi). Left column
+ * (centered): eyebrow / title / date / wordmark / QR frame / tagline.
+ * Right column: full-bleed cover photo with a vignette, a "misi tamu"
+ * grid panel, and a vertical credit line along the far edge.
  */
-function drawA4OliveCard({ canvas, data, qr, cover }: DrawA4OliveOpts) {
+function drawA4OliveCard({ canvas, data, logo, qr, cover }: DrawA4OliveOpts) {
   const W = canvas.width; // 1754
   const H = canvas.height; // 1240
   const ctx = canvas.getContext("2d")!;
@@ -271,141 +312,164 @@ function drawA4OliveCard({ canvas, data, qr, cover }: DrawA4OliveOpts) {
   ctx.fillStyle = OLIVE.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ---- Left column: title / date / QR / tagline -----------------------
-  const leftX = 70;
-  const leftWidth = 650;
-  let y = 130;
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = "600 14px Inter, sans-serif";
-  ctx.fillStyle = OLIVE.creamSoft;
-  ctx.fillText("W E D D I N G   O F", leftX, y);
-  y += 56;
-
-  ctx.font = "700 54px Poppins, sans-serif";
-  ctx.fillStyle = OLIVE.cream;
-  const titleLines = wrapForRotated(ctx, data.eventTitle.toUpperCase(), "700 54px Poppins, sans-serif", leftWidth);
-  for (const line of titleLines) {
-    ctx.fillText(line, leftX, y);
-    y += 60;
-  }
-  y += 10;
-
-  ctx.font = "600 16px Inter, sans-serif";
-  ctx.fillStyle = OLIVE.creamSoft;
-  if (data.eventDateLabel) {
-    ctx.fillText(data.eventDateLabel, leftX, y);
-    y += 24;
-  }
-  if (data.eventLocation) {
-    ctx.fillText(data.eventLocation, leftX, y);
-    y += 24;
-  }
-  y += 30;
-
-  ctx.font = "700 36px Poppins, sans-serif";
-  ctx.fillStyle = OLIVE.cream;
-  ctx.fillText("Scan. Jepret. Kenang.", leftX, y);
-  y += 50;
-
-  const qrSize = 400;
-  const qrX = leftX;
-  const qrY = y;
-  ctx.save();
-  ctx.fillStyle = "#FFFFFF";
-  roundRect(ctx, qrX, qrY, qrSize, qrSize, 20);
-  ctx.fill();
-  ctx.restore();
-  ctx.drawImage(qr, qrX + 24, qrY + 24, qrSize - 48, qrSize - 48);
-  drawCornerBrackets(ctx, qrX, qrY, qrSize, 40, OLIVE.cream, 3);
+  // ---- Left column (centered) ------------------------------------------
+  const leftCenterX = 435;
+  const leftColMax = 740;
 
   ctx.textAlign = "center";
-  ctx.font = "700 15px Inter, sans-serif";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "italic 500 32px Fraunces, serif";
   ctx.fillStyle = OLIVE.cream;
-  ctx.fillText("S C A N   M E", qrX + qrSize / 2, qrY - 22);
-  ctx.textAlign = "left";
+  ctx.fillText("Wedding of", leftCenterX, 108);
 
-  // Wordmark, bottom-left.
+  ctx.font = "700 84px Fraunces, serif";
+  const titleLines = wrapForRotated(ctx, data.eventTitle, "700 84px Fraunces, serif", leftColMax);
+  let y = 210;
+  for (const line of titleLines) {
+    ctx.fillText(line, leftCenterX, y);
+    y += 88;
+  }
+  y += 20;
+
   ctx.font = "700 20px Poppins, sans-serif";
-  ctx.fillStyle = OLIVE.cream;
-  ctx.fillText("KENANG KURINJI", leftX, H - 60);
+  ctx.fillStyle = OLIVE.textDark;
+  if (data.eventDateLabel) {
+    ctx.fillText(data.eventDateLabel, leftCenterX, y);
+    y += 28;
+  }
+  if (data.eventLocation) {
+    ctx.fillText(data.eventLocation, leftCenterX, y);
+    y += 28;
+  }
+  y += 46;
 
-  // ---- Right column: cover photo + missions panel ----------------------
-  const rightX = 780;
-  const rightWidth = W - rightX - 70; // ends at 1684
-  const photoX = rightX;
-  const photoY = 70;
-  const photoW = rightWidth;
-  const photoH = 610;
+  // Logo (actual brand mark, not a text wordmark).
+  const logoW = 220;
+  const logoH = (logoW * logo.height) / logo.width;
+  ctx.drawImage(logo, leftCenterX - logoW / 2, y, logoW, logoH);
+  y += logoH + 40;
+
+  // QR frame: light-sage outer box, white inner box, dashed corner
+  // brackets, and three "SCAN ME" labels (top / left / right).
+  const frameSize = 480;
+  const frameX = leftCenterX - frameSize / 2;
+  const frameY = y;
+  ctx.save();
+  ctx.fillStyle = OLIVE.bgLight;
+  roundRect(ctx, frameX, frameY, frameSize, frameSize, 28);
+  ctx.fill();
+  ctx.restore();
+
+  const qrSize = 400;
+  const qrX = leftCenterX - qrSize / 2;
+  const qrY = frameY + (frameSize - qrSize) / 2;
+  ctx.save();
+  ctx.fillStyle = "#FFFFFF";
+  roundRect(ctx, qrX, qrY, qrSize, qrSize, 8);
+  ctx.fill();
+  ctx.restore();
+  ctx.drawImage(qr, qrX + 16, qrY + 16, qrSize - 32, qrSize - 32);
+  drawCornerBrackets(ctx, qrX, qrY, qrSize, 36, OLIVE.accent, 3, 18);
+
+  drawScanMeLabel(ctx, leftCenterX, qrY - 30, 0, OLIVE.textDark);
+  drawScanMeLabel(ctx, qrX - 34, qrY + qrSize / 2, -90, OLIVE.textDark);
+  drawScanMeLabel(ctx, qrX + qrSize + 34, qrY + qrSize / 2, 90, OLIVE.textDark);
+  y = frameY + frameSize + 70;
+
+  ctx.font = "700 40px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  ctx.fillText("Scan. Jepret. Kenang.", leftCenterX, y);
+
+  // ---- Right column: full-bleed cover photo + missions grid ------------
+  const photoX = 900;
+  const photoY = 0;
+  const photoW = W - photoX;
+  const photoH = H;
 
   ctx.save();
-  roundRect(ctx, photoX, photoY, photoW, photoH, 24);
-  ctx.clip();
   if (cover) {
     drawImageCover(ctx, cover, photoX, photoY, photoW, photoH);
-    ctx.fillStyle = "rgba(74, 90, 46, 0.18)";
-    ctx.fillRect(photoX, photoY, photoW, photoH);
   } else {
     ctx.fillStyle = OLIVE.bgMuted;
     ctx.fillRect(photoX, photoY, photoW, photoH);
   }
+  // Soft vignette blending the photo's left edge into the olive background.
+  const fade = ctx.createLinearGradient(photoX, 0, photoX + 220, 0);
+  fade.addColorStop(0, OLIVE.bg);
+  fade.addColorStop(1, "rgba(138, 154, 91, 0)");
+  ctx.fillStyle = fade;
+  ctx.fillRect(photoX, photoY, 220, photoH);
   ctx.restore();
 
-  const panelX = rightX;
-  const panelY = photoY + photoH + 40;
-  const panelW = rightWidth;
-  const panelH = H - panelY - 95;
+  // Subtitle over the top of the photo.
+  ctx.textAlign = "center";
+  ctx.font = "700 26px Poppins, sans-serif";
+  ctx.fillStyle = OLIVE.cream;
+  const subtitleLines = wrapForRotated(
+    ctx,
+    "Jumlah jepretan terbatas. Gunakan setiap foto dengan penuh makna.",
+    "700 26px Poppins, sans-serif",
+    620
+  );
+  let sy = 75;
+  for (const line of subtitleLines) {
+    ctx.fillText(line, photoX + (W - photoX) / 2 + 20, sy);
+    sy += 34;
+  }
+
+  // Missions panel: 2-column grid over the lower half of the photo.
+  const panelX = photoX + 30;
+  const panelY = 560;
+  const panelW = W - panelX - 130;
+  const panelH = 470;
   ctx.save();
   ctx.fillStyle = OLIVE.panel;
-  roundRect(ctx, panelX, panelY, panelW, panelH, 20);
+  roundRect(ctx, panelX, panelY, panelW, panelH, 28);
   ctx.fill();
   ctx.restore();
 
-  ctx.textAlign = "left";
-  ctx.font = "700 18px Poppins, sans-serif";
-  ctx.fillStyle = OLIVE.textDark;
-  ctx.fillText("MISI TAMU", panelX + 30, panelY + 34);
-
-  const colCount = MISSIONS_A4.length;
-  const colPad = 30;
-  const colAreaW = panelW - colPad * 2;
-  const colWidth = colAreaW / colCount;
+  const colW = panelW / 2;
+  const rowH = 148;
+  const padX = 40;
+  const padTop = 55;
   MISSIONS_A4.forEach((mission, i) => {
-    const colX = panelX + colPad + colWidth * i;
-    const numberY = panelY + 80;
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const colX = panelX + padX + col * colW;
+    const rowY = panelY + padTop + row * rowH;
 
     ctx.textAlign = "left";
-    ctx.font = "700 30px Poppins, sans-serif";
+    ctx.font = "600 18px Inter, sans-serif";
     ctx.fillStyle = OLIVE.accent;
-    ctx.fillText(String(i + 1).padStart(2, "0"), colX, numberY);
-    const numW = ctx.measureText(String(i + 1).padStart(2, "0")).width;
-    ctx.font = "600 16px Inter, sans-serif";
-    ctx.fillText("\u2197", colX + numW + 6, numberY);
+    ctx.fillText("\u2197", colX, rowY);
+    ctx.font = "700 32px Poppins, sans-serif";
+    ctx.fillStyle = OLIVE.textDark;
+    ctx.fillText(`0${i + 1}.`, colX + 24, rowY);
 
-    ctx.font = "400 13px Inter, sans-serif";
+    ctx.font = "400 15px Inter, sans-serif";
     ctx.fillStyle = OLIVE.textDarkSoft;
-    const descLines = wrapForRotated(ctx, mission, "400 13px Inter, sans-serif", colWidth - 24);
-    let dy = numberY + 26;
+    const descLines = wrapForRotated(ctx, mission, "400 15px Inter, sans-serif", colW - padX - 40);
+    let dy = rowY + 30;
     for (const line of descLines) {
       ctx.fillText(line, colX, dy);
-      dy += 18;
+      dy += 21;
     }
   });
 
-  // ---- Footer strip, full width -----------------------------------------
-  ctx.textAlign = "center";
-  ctx.font = "700 15px Poppins, sans-serif";
+  ctx.textAlign = "left";
+  ctx.font = "400 15px Inter, sans-serif";
   ctx.fillStyle = OLIVE.cream;
-  ctx.fillText("Jumlah jepretan terbatas. Gunakan setiap foto dengan penuh makna.", W / 2, H - 58);
+  ctx.fillText("Terima kasih telah menjadi bagian dari kenangan hari ini.", photoX + 30, H - 30);
 
-  ctx.font = "400 13px Inter, sans-serif";
+  // Vertical credit line along the far right edge.
+  ctx.save();
+  ctx.translate(W - 26, H - 40);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = "400 14px Inter, sans-serif";
   ctx.fillStyle = OLIVE.creamSoft;
-  ctx.fillText("Terima kasih telah menjadi bagian dari kenangan hari ini.", W / 2, H - 36);
-
-  ctx.font = "400 11px Inter, sans-serif";
-  ctx.fillStyle = OLIVE.creamFaint;
-  ctx.fillText("Dibuat dengan Kenang Kurinji \u00B7 KURINJI VIRTUAL NUSANTARA", W / 2, H - 16);
+  ctx.textAlign = "left";
+  ctx.fillText("Dibuat dengan Kenang Kurinji | KURINJI VIRTUAL NUSANTARA", 0, 0);
+  ctx.restore();
 }
 
 interface DrawOpts {
@@ -626,14 +690,15 @@ export async function generateQrCardBlob(format: QrCardFormat, data: QrCardData)
   const canvas = document.createElement("canvas");
 
   if (format === "a4") {
-    const [qr, cover] = await Promise.all([
+    const [logo, qr, cover] = await Promise.all([
+      loadImage("/logo.png"),
       loadImage(data.qrImageSrc),
       data.coverImageSrc ? loadImage(data.coverImageSrc).catch(() => null) : Promise.resolve(null),
     ]);
     await ensureFonts();
     canvas.width = 1754;
     canvas.height = 1240;
-    drawA4OliveCard({ canvas, data, qr, cover });
+    drawA4OliveCard({ canvas, data, logo, qr, cover });
   } else {
     const [logo, qr] = await Promise.all([loadImage("/logo.png"), loadImage(data.qrImageSrc)]);
     await ensureFonts();
@@ -657,4 +722,4 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-                }
+  }
