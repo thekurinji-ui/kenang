@@ -22,7 +22,8 @@ export function buildMetadata({
 
     description,
 
-    keywords: siteConfig.keywords,
+    // Next.js mengharapkan string[] biasa, bukan readonly tuple.
+    keywords: [...siteConfig.keywords],
 
     alternates: {
       canonical: url,
