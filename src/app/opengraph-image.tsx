@@ -20,17 +20,18 @@ export default function OpenGraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "72px",
-          background: "#F8F5F1",
-          color: "#1A1A1A",
-          fontFamily: "Inter",
+          padding: 72,
+          background:
+            "linear-gradient(135deg,#FFF8F2 0%,#FFF4F4 100%)",
+          color: "#111827",
         }}
       >
         <div
           style={{
+            display: "flex",
             fontSize: 28,
-            color: "#D64545",
             fontWeight: 700,
+            color: "#DC2626",
             letterSpacing: 4,
           }}
         >
@@ -47,27 +48,39 @@ export default function OpenGraphImage() {
         >
           <div
             style={{
+              display: "flex",
               fontSize: 72,
               fontWeight: 800,
               lineHeight: 1.05,
             }}
           >
-            Disposable Camera
-            <br />
-            for Modern Events.
+            Digital Disposable Camera
           </div>
 
           <div
             style={{
-              fontSize: 28,
-              color: "#666",
-              lineHeight: 1.5,
+              display: "flex",
+              fontSize: 72,
+              fontWeight: 800,
+              lineHeight: 1.05,
             }}
           >
-            Scan. Shoot. Remember.
-            <br />
+            for Modern Events
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              fontSize: 28,
+              color: "#4B5563",
+              lineHeight: 1.5,
+              maxWidth: 820,
+            }}
+          >
+            Scan. Jepret. Kenang.
             Digital disposable camera untuk pernikahan,
-            wisuda, ulang tahun, dan berbagai momen berharga.
+            wisuda, ulang tahun, konser,
+            dan berbagai momen berharga.
           </div>
         </div>
 
@@ -77,11 +90,16 @@ export default function OpenGraphImage() {
             justifyContent: "space-between",
             alignItems: "center",
             fontSize: 24,
-            color: "#888",
+            color: "#6B7280",
           }}
         >
-          <span>kenang.kurinji.asia</span>
-          <span>The Kurinji</span>
+          <div style={{ display: "flex" }}>
+            kenang.kurinji.asia
+          </div>
+
+          <div style={{ display: "flex" }}>
+            The Kurinji
+          </div>
         </div>
       </div>
     ),
