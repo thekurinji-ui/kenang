@@ -54,10 +54,4 @@ export default function HomePage() {
       <LandingFooter />
     </main>
   );
-}      <LandingPricing />
-      <LandingFaq />
-      <LandingCta />
-      <LandingFooter />
-    </main>
-  );
 }
